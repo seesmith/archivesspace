@@ -57,7 +57,10 @@ module MarcXMLBaseMap
         },
         "self::datafield" => {
           :defaults => {
-            :name_order => 'direct'
+            :name_order => 'direct',
+            :source => 'ingest'
+          
+          
           }
         }
       }
@@ -200,6 +203,24 @@ module MarcXMLBaseMap
           }
         },
         "//datafield[@tag='411']" => {
+          :obj => :name_corporate_entity,
+          :rel => :names,
+          :map => name_corp_map,
+          :defaults => {
+            :name_order => 'direct',
+            :source => 'ingest'
+          }
+        },
+        "//datafield[@tag='610']" => {
+          :obj => :name_corporate_entity,
+          :rel => :names,
+          :map => name_corp_map,
+          :defaults => {
+            :name_order => 'direct',
+            :source => 'ingest'
+          }
+        },
+        "//datafield[@tag='611']" => {
           :obj => :name_corporate_entity,
           :rel => :names,
           :map => name_corp_map,
@@ -1045,7 +1066,8 @@ module MarcXMLBaseMap
                                                                    node.xpath("subfield").each do |subnode|
                                                                      code = subnode.attr('code')
                                                                      val = subnode.inner_text
-                                                                     hsh[code] = val
+                                                                     hsh[code] ||= []
+                                                                     hsh[code] << val
                                                                    end
                                                                    srtd_keys = hsh.keys.sort do |one, two|
                                                                      if one == '3'
@@ -1062,7 +1084,9 @@ module MarcXMLBaseMap
                                                                    end
                                                                    srtd_keys.each do |k|
                                                                      if hsh[k] and !hsh[k].empty?
-                                                                        terms << make_term('topical', hsh[k])
+                                                                       hsh[k].each do |t|  
+                                                                        terms << make_term('topical', t)
+                                                                       end 
                                                                      end
                                                                    end
                                                                   terms

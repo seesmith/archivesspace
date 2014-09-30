@@ -1,5 +1,6 @@
 require_relative 'spec_helper'
 require_relative '../../indexer/app/lib/realtime_indexer'
+require_relative '../../indexer/app/lib/periodic_indexer'
 
 
 
@@ -9,6 +10,8 @@ describe "ArchivesSpace user interface" do
   before(:all) do
     selenium_init($backend_start_fn, $frontend_start_fn)
     @indexer = RealtimeIndexer.new($backend, nil)
+    @period = PeriodicIndexer.new
+    create_test_repo('target', 'target', true)
   end
 
 
@@ -17,7 +20,15 @@ describe "ArchivesSpace user interface" do
     @last_sequence = @indexer.run_index_round(@last_sequence)
   end
 
+  def run_periodic_index
+    @period.run_index_round
+  end
 
+  def run_all_indexers
+    run_index_round
+    run_periodic_index
+  end
+  
   # Stop selenium, kill the dev servers
   after(:all) do
     report_sleep
@@ -1008,6 +1019,7 @@ describe "ArchivesSpace user interface" do
       # save changes
       $driver.click_and_wait_until_gone(:css => "form#accession_form button[type='submit']")
 
+      sleep(10)
       # check the show page
       $driver.click_and_wait_until_gone(:link => @exdocs_accession_title)
       $driver.find_element(:id, "accession_rights_statements_")
@@ -1015,6 +1027,45 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:id, "rights_statement_0")
     end
 
+    it "can add collection management fields to an Accession" do
+      $driver.click_and_wait_until_gone(:link, 'Edit')
+       $accession_url = $driver.current_url
+      # add a rights sub record
+      $driver.find_element(:css => '#accession_collection_management_ .subrecord-form-heading .btn:not(.show-all)').click
+
+      $driver.clear_and_send_keys([:id => "accession_collection_management__cataloged_note_"], ["DONE!", :return])
+      $driver.find_element(:id => "accession_collection_management__processing_status_").select_option("completed")
+
+      # save changes
+      $driver.click_and_wait_until_gone(:css => "form#accession_form button[type='submit']")
+     
+      run_all_indexers
+      # check the CM page
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Collection Management").click
+     
+    
+      expect {
+        $driver.find_element_with_text('//td', /#{@exdocs_accession_title}/ )
+      }.to_not raise_error     
+      
+      $driver.click_and_wait_until_gone(:link, 'Edit')
+     
+      # now delete it
+      $driver.find_element(:css => '#accession_collection_management_ .subrecord-form-remove').click
+      $driver.find_element(:css => '#accession_collection_management_ .confirm-removal').click 
+      $driver.click_and_wait_until_gone(:css => "form#accession_form button[type='submit']")
+    
+      run_all_indexers
+
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Collection Management").click
+      
+      assert(5) { $driver.find_element(:css => ".alert.alert-info").text.should eq("No records found") }    
+
+      $driver.get($accession_url) 
+      $driver.click_and_wait_until_gone(:link => @exdocs_accession_title) 
+    end
 
     it "supports adding an event and then returning to the accession" do
       if false
@@ -1374,6 +1425,15 @@ describe "ArchivesSpace user interface" do
       $driver.clear_and_send_keys([:id, "accession_accession_date_"], "2012-01-01")
       $driver.clear_and_send_keys([:id, "accession_content_description_"], "9 guinea pigs")
       $driver.clear_and_send_keys([:id, "accession_condition_description_"], "furious")
+      
+      # add a rights sub record
+      $driver.find_element(:css => '#accession_collection_management_ .subrecord-form-heading .btn:not(.show-all)').click
+
+      $driver.clear_and_send_keys([:id => "accession_collection_management__cataloged_note_"], ["HOBO CAMP!", :return])
+      $driver.find_element(:id => "accession_collection_management__processing_status_").select_option("completed")
+      
+
+      $driver.click_and_wait_until_gone(:css => "form#accession_form button[type='submit']")
 
       # save
       $driver.find_element(:css => "form#accession_form button[type='submit']").click
@@ -1389,6 +1449,9 @@ describe "ArchivesSpace user interface" do
       $driver.clear_and_send_keys([:id, "resource_language__combobox"], ["eng", :return])
       $driver.find_element(:id, "resource_level_").select_option("collection")
 
+      # no collection managment
+      $driver.find_elements(:id, "resource_collection_management__cataloged_note_").length.should eq(0)
+      
       # condition and content descriptions have come across as notes fields
       notes_toggle = $driver.blocking_find_elements(:css => "#notes .collapse-subrecord-toggle")
       notes_toggle[0].click
@@ -1669,6 +1732,67 @@ describe "ArchivesSpace user interface" do
       extent_headings.length.should eq (1)
       assert(5) { extent_headings[0].text.should eq ("10 Files") }
     end
+ 
+    it "can transfer a resource to another repository" do
+      
+      
+      logout
+      login("admin", "admin")
+      
+      select_repo($test_repo) 
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Resources").click
+      $driver.find_element_with_text('//tr', resource_regex).find_element(:link, 'Edit').click
+      
+      $driver.find_element(:link, "Transfer").click
+      $driver.find_element(:id, "transfer_ref_").select_option_with_text('target')
+      $driver.find_element(:css => ".transfer-button").click
+      $driver.find_element(:css, "#confirmButton").click
+      $driver.find_element_with_text('//div[contains(@class, "alert-success")]', /Transfer Successful/)
+      
+      run_all_indexers
+
+      select_repo('target') 
+      
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Resources").click
+      
+      $driver.find_element_with_text('//td', /#{resource_stripped}/)
+
+    end
+    
+    it "can edit and reorder aftert the transfer" do
+      $driver.find_element_with_text('//tr', resource_regex).find_element(:link, 'Edit').click
+      
+      # first resize the tree pane (do it incrementally so it doesn't flip out...)
+      pane_resize_handle = $driver.find_element(:css => ".ui-resizable-handle.ui-resizable-s")
+      10.times {
+        $driver.action.drag_and_drop_by(pane_resize_handle, 0, 10).perform
+      }
+
+      source = $driver.find_element_with_text("//div[@id='archives_tree']//a", /December/)
+      target = $driver.find_element_with_text("//div[@id='archives_tree']//a", /Pony Express/)
+      $driver.action.drag_and_drop(source, target).perform
+      $driver.wait_for_ajax
+    
+      target = $driver.find_element_with_text("//div[@id='archives_tree']//li", /Pony Express/)
+      target.find_element_with_text(".//a", /December/)
+
+      # refresh the page and verify that the change really stuck
+      $driver.navigate.refresh
+
+      target = $driver.find_element_with_text("//div[@id='archives_tree']//li", /Pony Express/)
+      target.find_element_with_text(".//a", /December/).click
+      
+      $driver.clear_and_send_keys([:id, "archival_object_title_"], "save this please")
+      $driver.find_element(:css => "form .record-pane button[type='submit']").click
+      assert(5) { $driver.find_element(:css, "h2").text.should eq("save this please Archival Object") }
+      assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq('Archival Object save this please updated') }
+
+    
+    end
+  
+  
   end
 
 

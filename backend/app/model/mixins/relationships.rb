@@ -67,6 +67,9 @@ AbstractRelationship = Class.new(Sequel::Model) do
       # Suppress this new relationship if it points to a suppressed record
       values[:suppressed] = 1
     end
+   
+    # some objects ( like events? ) seem to leak their ids into the mix. 
+    values.reject! { |key| key == :id or key == "id" }
 
     self.create(values)
   end
@@ -705,9 +708,8 @@ module Relationships
 
       relationships.map do |relationship_defn|
         models = relationship_defn.participating_models
-
         if models.include?(obj.class)
-          their_ref_columns = relationship_defn.reference_columns_for(self)
+          their_ref_columns = relationship_defn.reference_columns_for(obj.class)
           my_ref_columns = relationship_defn.reference_columns_for(self)
           their_ref_columns.each do |their_col|
             my_ref_columns.each do |my_col|
