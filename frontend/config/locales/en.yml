@@ -84,6 +84,7 @@ en:
     include_unpublished: Include unpublished
     include_daos: Include &lt;dao&gt; tags
     numbered_cs: Use numbered &lt;c&gt; tags
+    print_pdf: Print to PDF
 
   pagination:
     first: First
@@ -133,6 +134,12 @@ en:
       classification_uri: Classification
       location_uris: Location
       agents: Agent
+      creators: Creator
+      fullrecord: Keyword
+      subjects_text: Subject
+      title: Title
+      creators_text: Creator
+      notes: Notes
 
   search_sorting:
     sort_by: "Sort by:"
@@ -173,6 +180,27 @@ en:
     digital_object_type: Digital Object Type
     publish: Publish
 
+  advanced_search:
+    operator:
+      AND: And
+      OR: Or
+      NOT: Not
+    date_operator:
+      equal: equals
+      greater_than: greater than
+      lesser_than: less than
+    boolean_field:
+      true_value: "True"
+      false_value: "False"
+    button_text: Search
+    reset: Clear
+    nav_switcher:
+      show: Show Advanced
+      hide: Hide Advanced
+    index_switcher:
+      show: Show Advanced Search
+      hide: Hide Advanced Search
+
   become-user:
     become-user: Become User
     failed: Failed to switch to the specified user
@@ -191,6 +219,9 @@ en:
     import_digital_object_csv: Digital Object CSV
     search_all: All Records
     search_placeholder: Search All Records
+    search_button_title: Search All Records
+    show_advanced_search_button_title: Show Advanced Search
+    hide_advanced_search_button_title: Hide Advanced Search
     plugins: Plug-ins
     repositories_manage: Manage Repositories
     manage_groups: Manage Groups
@@ -292,6 +323,7 @@ en:
         deleted: Accession <strong>%{accession.display_string}</strong> deleted
         transfer_description: Transfer this accession to...
         transfer_target: Select a repository to transfer into
+        spawned: "This Accession has been spawned from Accession <strong>%{accession.display_string}</strong>"
       section:
         basic_information: Basic Information
       action:
@@ -304,7 +336,7 @@ en:
         created: Agent Created
         updated: Agent Saved
         deleted: Agent Deleted
-        merge_description: Merge into this agent...
+        merge_description: Select below agents to merge into 
         merged: Agent(s) Merged
         please_select_a_agent_to_merge: Please select an agent
       section:
@@ -431,7 +463,7 @@ en:
         updated: "Digital Object <strong>%{digital_object.title}</strong> Updated"
         deleted: "Digital Object <strong>%{digital_object.title}</strong> Deleted"
         published: "The Digital Object <strong>%{digital_object.title}</strong>, its subrecords and components have been published"
-        merge_description: Merge into this digital object...
+        merge_description: Select digital objects below to merge into
         please_select_a_digital_object_to_merge: Please select a digital object
         merged: Digital object(s) Merged
         transfer_description: Transfer this resource to...
@@ -659,7 +691,7 @@ en:
         spawned: "A new Resource has been spawned from Accession <strong>%{accession.display_string}</strong>"
         deleted: "Resource <strong>%{resource.title}</strong> deleted"
         published: "The Resource <strong>%{resource.title}</strong>, its subrecords and components have been published"
-        merge_description: Merge into this resource...
+        merge_description: Select resources below to merge into
         please_select_a_resource_to_merge: Please select a resource
         merged: Resource(s) Merged
         transfer_description: Transfer this resource to...
@@ -704,7 +736,7 @@ en:
         updated: Subject Saved
         deleted: Subject Deleted
         merged: Subject(s) Merged
-        merge_description: Merge into this subject...
+        merge_description: Select subjects below to merge into
         please_select_a_subject_to_merge: Please select a subject
       section:
         basic_information: Basic Information

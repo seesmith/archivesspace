@@ -564,6 +564,7 @@ class EADConverter < Converter
 
   # Templates Section
 
+
   def make_corp_template(opts)
     return nil if inner_xml.strip.empty?
     make :agent_corporate_entity, {
@@ -572,11 +573,30 @@ class EADConverter < Converter
       set ancestor(:resource, :archival_object), :linked_agents, {'ref' => corp.uri, 'role' => opts[:role]}
     end
 
+    @all_name = inner_xml.split('|')
+    @primary_name = @all_name[0]
+    @sub_name1 = @all_name[1]
+    @dates = @all_name[2]
+    @qualifier = @all_name[3]
+
+    Log.debug('********** name_corp primary_name ' + @all_name[0] )
+    Log.debug('********** name_corp sub_name1 ' + @all_name[1])
+    Log.debug('********** name_corp dates ' + @all_name[2])
+    if @qualifier.nil?
+      Log.debug('********** name_corp qualifier is empty')
+    else
+      Log.debug('********** name_corp qualifier ' + @all_name[3])
+
+    end
+
+
     make :name_corporate_entity, {
-      :primary_name => inner_xml,
+      :primary_name => @primary_name,
       :rules => att('rules'),
-      :authority_id => att('id'),
-      :source => att('source') || 'ingest'
+      :authority_id => att('authfilenumber') || '',
+      :source => att('source') || 'ingest',
+      :dates => @dates,
+      :qualifier => @qualifier
     } do |name|
       set ancestor(:agent_corporate_entity), :names, proxy
     end
@@ -591,11 +611,25 @@ class EADConverter < Converter
       set ancestor(:resource, :archival_object), :linked_agents, {'ref' => family.uri, 'role' => opts[:role]}
     end
 
+    @all_name = inner_xml.split('|')
+    @family_name = @all_name[0]
+    @prefix = @all_name[1]
+    @dates = @all_name[2]
+    @qualifier = @all_name[3]
+
+    Log.debug('********** name_family family_name ' + @family_name )
+    Log.debug('********** name_family prefix ' + @prefix )
+    Log.debug('********** name_family dates ' + @dates )
+    Log.debug('********** name_family qualifier ' + @qualifier)
+
     make :name_family, {
-      :family_name => inner_xml,
+      :family_name => @family_name,
       :rules => att('rules'),
-      :authority_id => att('id'),
-      :source => att('source') || 'ingest'
+      :authority_id => att('authfilenumber') || '',
+      :source => att('source') || 'ingest',
+      :qualifier => @qualifier,
+      :prefix => @prefix,
+      :dates => @dates
     } do |name|
       set ancestor(:agent_family), :names, name
     end
@@ -613,16 +647,16 @@ class EADConverter < Converter
 
     @all_name = inner_xml.split('|')
     @primary_name = @all_name[0]
-    @rest_of_name = @all_name[1]
-    @title = @all_name[2]
+    @title = @all_name[1]
+    @rest_of_name = @all_name[2]
     @dates = @all_name[3]
     @qualifier = @all_name[4]
 
-    Log.debug('name_person primary_name ' + @primary_name )
-    Log.debug('name_person rest_of_name ' + @rest_of_name )
-    Log.debug('name_person title ' + @title )
-    Log.debug('name_person dates ' + @dates )
-    Log.debug('name_person qualifier ' + @qualifier )
+    Log.debug('********** name_person primary_name ' + @primary_name )
+    Log.debug('********** name_person rest_of_name ' + @rest_of_name )
+    Log.debug('********** name_person title ' + @title )
+    Log.debug('********** name_person dates ' + @dates )
+    Log.debug('********** name_person qualifier ' + @qualifier )
 
 
     make :name_person, {
@@ -633,7 +667,8 @@ class EADConverter < Converter
       :source => att('source') || 'ingest' ,
       :rest_of_name => @rest_of_name,
       :title => @title,
-      :qualifier => @qualifier
+      :qualifier => @qualifier,
+      :dates => @dates
     } do |name|
       set ancestor(:agent_person), :names, name
     end

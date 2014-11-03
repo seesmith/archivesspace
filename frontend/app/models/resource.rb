@@ -19,11 +19,13 @@ class Resource < JSONModel(:resource)
     values = JSONSchemaUtils.map_hash_with_schema(values, JSONModel(:accession).schema,
                                                         [proc { |hash, schema|
                                                           hash = hash.clone
-                                                          hash.delete_if {|k, v| k.to_s =~ /^(id_[0-9]|lock_version|instances|deaccessions|collection_management|user_defined|classifications)$/}
+                                                          hash.delete_if {|k, v| k.to_s =~ /^(id_[0-9]|lock_version|instances|deaccessions|collection_management|user_defined|classifications|external_documents)$/}
                                                           hash
                                                         }])
 
-
+    # We'll replace this with our own relationship, linking us back to the
+    # accession we were spawned from.
+    values.delete('related_accessions')
 
     notes ||= []
 

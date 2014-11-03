@@ -35,9 +35,9 @@ end
 
 
 def few_or_none(key)
-  arr = []
-  rand(4).times { arr << build(key) }
-  arr
+ arr = []
+ rand(4).times { arr << build(key) }
+ arr
 end
 
 
@@ -49,8 +49,9 @@ FactoryGirl.define do
   sequence(:username) {|n| "username_#{n}"}
 
   sequence(:alphanumstr) { (0..4).map{ rand(3)==1?rand(10):(65 + rand(25)).chr }.join }
-  sequence(:good_markup) { "<p>I'm</p><p>GOOD</p>" + generate(:alphanumstr) }
+  sequence(:good_markup) { "<p>I'm</p><p>GOOD</p><p>#{ generate(:alphanumstr)}</p>" }
   sequence(:whack_markup) { "I'm <p><br/>WACK " + generate(:alphanumstr) }
+  sequence(:wild_markup) { "<p> I AM \n WILD \n ! \n ! " + generate(:alphanumstr) + "</p>" }
   sequence(:string) { generate(:alphanumstr) }
   sequence(:generic_title) { |n| "Title: #{n}"}
   sequence(:html_title) { |n| "Title: <emph render='italic'>#{n}</emph>"}
@@ -311,14 +312,14 @@ FactoryGirl.define do
 
   factory :json_note_index_item, class: JSONModel(:note_index_item) do
     value { generate(:alphanumstr) }
-    reference { generate(:alphanumstr) }
-    reference_text { generate(:alphanumstr) }
+    #reference { generate(:alphanumstr) }
+    #reference_text { generate(:alphanumstr) }
     type { generate(:note_index_item_type) }
   end
 
   factory :json_note_bibliography, class: JSONModel(:note_bibliography) do
     label { generate(:alphanumstr) }
-    content { [generate(:alphanumstr)] }
+    content { [generate(:wild_markup)] }
     items { [generate(:alphanumstr)] }
     type { generate(:note_bibliography_type) }
   end
@@ -333,7 +334,11 @@ FactoryGirl.define do
   end
 
   factory :json_note_text, class: JSONModel(:note_text) do
-    content { generate(:good_markup) }
+    content { generate(:alphanumstr) }
+  end
+  
+  factory :json_note_text_gone_wilde, class: JSONModel(:note_text) do
+    content { generate(:wild_markup) }
   end
 
   factory :json_note_orderedlist, class: JSONModel(:note_orderedlist) do
@@ -514,6 +519,11 @@ FactoryGirl.define do
     type { generate(:multipart_note_type)}
     subnotes { [ build(:json_note_text, :publish => true) ] }
   end
+  
+  factory :json_note_multipart_gone_wilde, class: JSONModel(:note_multipart) do
+    type { generate(:multipart_note_type)}
+    subnotes { [ build(:json_note_text_gone_wilde, :publish => true) ] }
+  end
 
   factory :json_note_digital_object, class: JSONModel(:note_digital_object) do
     type { generate(:digital_object_note_type)}
@@ -529,6 +539,7 @@ FactoryGirl.define do
     dates { [build(:json_date)] }
     finding_aid_description_rules { [nil, generate(:finding_aid_description_rules)].sample }
     ead_id { nil_or_whatever }
+    finding_aid_date { generate(:alphanumstr) } 
     finding_aid_language { nil_or_whatever }
     finding_aid_revision_date { nil_or_whatever }
     finding_aid_revision_description { nil_or_whatever }

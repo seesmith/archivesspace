@@ -34,10 +34,29 @@ describe 'Export Mappings' do
     #throw in a couple non-digital instances
     rand(3).times { instances << build(:json_instance) }
 
+    # this tests that note order is preserved, even when it's a
+    # text.text.list.text setup.
+    @mixed_subnotes_tracer = build("json_note_multipart", {
+                        :type => 'bioghist',
+                        :publish => true,
+                       :persistent_id => "mixed_subnotes_tracter",
+                       :subnotes => [build(:json_note_text, { :publish => true, 
+                                                              :content => "note_text - The ship set ground on the shore of this uncharted desert isle"} ), 
+                                     build(:json_note_text, { :publish => true, 
+                                                                :content => "note_text - With:"}),
+                                    build(:json_note_definedlist,{  :publish => true, :title => "note_definedlist",
+                                                                      :items => [
+                                                                        {:label => "First Mate", :value => "Gilligan" },
+                                                                        {:label => "Captain",:value => "The Skipper"},
+                                                                        {:label => "Etc.", :value => "The Professor and Mary Ann" }
+                                                                      ] 
+                                    }),
+                                    build(:json_note_text,{   :content => "note_text - Here on Gillgian's Island", :publish => true}) ]                                         
+    })
 
 
     resource = create(:json_resource,  :linked_agents => build_linked_agents(@agents),
-                       :notes => build_archival_object_notes(100),
+                       :notes => build_archival_object_notes(100) + [@mixed_subnotes_tracer],
                        :subjects => @subjects.map{|ref, s| {:ref => ref}},
                        :instances => instances,
                        :finding_aid_status => %w(completed in_progress under_revision unprocessed).sample
@@ -114,7 +133,7 @@ describe 'Export Mappings' do
     notes = []
     brake = 0
     while !(note_types - notes.map {|note| note['type']}).empty? && brake < max do
-      notes << build("json_note_#{['singlepart', 'multipart', 'index', 'bibliography'].sample}".intern, {
+      notes << build("json_note_#{['singlepart', 'multipart', 'multipart_gone_wilde', 'index', 'bibliography'].sample}".intern, {
                        :publish => true,
                        :persistent_id => [nil, generate(:alphanumstr)].sample
                      })
@@ -167,20 +186,25 @@ describe 'Export Mappings' do
           load_export_fixtures
           @doc = get_xml_doc("/repositories/#{$repo_id}/resource_descriptions/#{@resource.id}.xml?include_unpublished=true&include_daos=true")
           
-          #dtd = Nokogiri::XML::Schema(open('http://www.loc.gov/ead/ead.xsd'))
-          #dtd.valid?(@doc).should be_true
 
           @doc_nsless = Nokogiri::XML::Document.parse(@doc.to_xml)
           @doc_nsless.remove_namespaces!
           raise Sequel::Rollback
         end
       end
-#      if @doc.errors.length > 0
-        File.open('/tmp/out.txt', 'a') { |f| f <<  @doc.to_xml + "\n" + @doc.errors.inspect + "\n" + "*" * 100 }
-#      end
+       
       
+      xsd = Nokogiri::XML::Schema(open('http://www.loc.gov/ead/ead.xsd'))
+      
+      xsd.valid?(@doc).should be_true
       @doc.errors.length.should == 0 
-    end
+
+      # if the word Nokogiri appears in the XML file, we'll assume something
+      # has gone wrong
+      @doc.to_xml.should_not include("Nokogiri")
+      @doc.to_xml.should_not include("#&amp;")
+
+end
 
 
     let(:repo) { JSONModel(:repository).find($repo_id) }
@@ -239,7 +263,8 @@ describe 'Export Mappings' do
             end
             
             mt(head_text, "#{path}/head")
-            mt(/^.*?#{head_text}.*?[\r\n]*.*?#{content}.*?$/, "#{path}")
+            regcontent = content.split(/\n|\r/).map { |c| ".*?[\r\n]*.*?#{c.strip}" } 
+            mt(/^.*?#{head_text}.*?[\r\n]*.*?#{regcontent}.*?$/m, "#{path}")
           end
         end
       end
@@ -267,8 +292,9 @@ describe 'Export Mappings' do
             head_text = note['label']
             id = "aspace_" + note['persistent_id']
             content = note_content(note)
+            content.gsub!("<p>", "").gsub!("</p>", "").strip 
             path = "bibliography"
-            path += id ? "[@id='#{id}']" : "[p[contains(text(), '#{content}')]]"
+            path += id ? "[@id='#{id}']" : "[p[contains(text(), #{content})]]"
             full_path = "#{desc_path}/#{path}"
             
             if !note['persistent_id'].nil? 
@@ -277,7 +303,7 @@ describe 'Export Mappings' do
               mt(nil, full_path, 'id')
             end
             mt(head_text, "#{full_path}/head")
-            mt(content, "./#{path}/text()[contains('#{content}')]")
+            mt(content, "./#{path}/p/text()[contains('#{content}')]")
 
             note['items'].each_with_index do |item, i|
               mt(item, "#{full_path}/bibref[#{i+1}]")
@@ -301,7 +327,7 @@ describe 'Export Mappings' do
             end
             
             mt(head_text, "#{full_path}/head")
-            mt(content, "./#{path}/text()[contains( '#{content}')]")
+            mt(content, "./#{path}/p/text()[contains( '#{content}')]")
 
             note['items'].each_with_index do |item, i|
               index_item_type_map.keys.should include(item['type'])
@@ -394,7 +420,21 @@ describe 'Export Mappings' do
             end
           end
         end
-      end
+      
+        it "ensures subnotes[] order is respects, even if subnotes are of mixed types" do
+            
+            path = "//bioghist[@id = 'aspace_#{@mixed_subnotes_tracer['persistent_id']}']" 
+            head_text = translate('enumerations._note_types',@mixed_subnotes_tracer['type'])
+          
+            mt(head_text, "#{path}/head")
+            i = 2 # start at two since head is the first child 
+            @mixed_subnotes_tracer["subnotes"].each do |note|
+              mt(/#{note["jsonmodel_type"]}/, "#{path}/*[text() != ''][#{i.to_s}]") 
+              i = i + 1
+            end
+
+        end
+    end
 
       describe "How {archival_object}.instances[].container data is mapped." do
         let(:containers) { object.instances.map {|i| i['container'] } }
@@ -513,7 +553,7 @@ describe 'Export Mappings' do
         it "maps notes of type 'dimensions' to did/physdesc/dimensions" do
           notes.select {|n| n['type'] == 'dimensions'}.each_with_index do |note, i|
             path = "#{desc_path}/did/physdesc[dimensions][#{i+1}]/dimensions"
-            mt(note_content(note), path, :markup)
+            mt(note_content(note).gsub("<p>",'').gsub("</p>", ""), path, :markup)
             if note['persistent_id'] 
               mt("aspace_" + note['persistent_id'], path, "id")
             else 
@@ -764,7 +804,7 @@ describe 'Export Mappings' do
             repo.image_url => "xlink:href",
             "onLoad" => "xlink:actuate",
             "embed" => "xlink:show",
-            "simple" => "xlink:linktype"
+            "simple" => "xlink:type"
           }.each do |data, att|
             mt(data, "//xmlns:eadheader/xmlns:filedesc/xmlns:publicationstmt/xmlns:p/xmlns:extref", att)
           end

@@ -1,6 +1,11 @@
 Running ArchivesSpace under Tomcat
 ----------------------------------
 
+Before using these intructions, please have a look at the main documentation.
+It a good idea to try out ArchivesSpace and be able to have it running in the
+standard foreground mode ( using the archivesspace.bat or archivesspace.sh scripts).
+Also, be sure to have your database setup and config.rb configured correctly.
+
 ArchivesSpace is packaged as a set of `.war` files, so you can run it
 under any servlet container you like.  Unless you have particular
 needs, we recommend you use the standard method described in README.md
@@ -16,6 +21,11 @@ However, if you have a burning desire to use Tomcat, the steps are:
     using MySQL).  Something like:
 
       AppConfig[:db_url] = "jdbc:mysql://localhost:3306/archivesspace?user=as&password=as123&useUnicode=true&characterEncoding=UTF-8"
+
+  * Also in config/config.rb disable embedded solr and set solr url if you want to use an [external Solr instance](README_SOLR.md)
+
+      AppConfig[:enable_solr] = false
+      AppConfig[:solr_url] = "http://some.solr.org:8983/solr/archivesspace"
 
   * Unpack the Tomcat distribution
 

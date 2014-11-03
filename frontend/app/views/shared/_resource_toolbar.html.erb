@@ -21,7 +21,7 @@
       <% end %>
       <div class="btn-toolbar pull-right">
         <div class="btn-group">
-          <% if user_can?('update_archival_record') && !record.suppressed %>
+          <% if user_can?('update_event_record') && !record.suppressed %>
             <%= render_aspace_partial :partial => "shared/event_dropdown", :locals => {:record => record} %>
           <% end %>
           <div class="btn btn-inline-form">
@@ -37,7 +37,7 @@
           </div>
           <% if record.publish %>
           	<div class="btn btn-inline-form">
-              <%= link_to I18n.t("actions.view_published"), URI.join(AppConfig[:public_proxy_url], record.uri).to_s, :target => "_blank", :class => "btn btn-small" %>
+              <%= link_to I18n.t("actions.view_published"), File.join(AppConfig[:public_proxy_url], record.uri).to_s, :target => "_blank", :class => "btn btn-small" %>
             </div>
           <% end %>
           <div class="btn btn-inline-form">

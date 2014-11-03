@@ -1,4 +1,4 @@
-<% if user_can?('update_archival_record') %>
+<% if user_can?('update_accession_record') %>
   <div class="row-fluid">
     <div class="span12">
       <div class="record-toolbar">
@@ -24,7 +24,7 @@
           <div class="btn-group">
             <% if @accession.publish %>
               <div class="btn btn-inline-form">
-                <%= link_to I18n.t("actions.view_published"), URI.join(AppConfig[:public_proxy_url], @accession.uri).to_s, :target => "_blank", :class => "btn btn-small" %>
+                <%= link_to I18n.t("actions.view_published"), File.join(AppConfig[:public_proxy_url], @accession.uri).to_s, :target => "_blank", :class => "btn btn-small" %>
               </div>
             <% end %>
             <% if @accession_event_types && !@accession.suppressed %>
@@ -37,6 +37,9 @@
                   <span class="caret"></span>
                 </a>
                 <ul class="dropdown-menu open-aligned-right">
+                  <li>
+                    <%= link_to "<span class='icon-accession'></span> #{I18n.t("accession._singular")}".html_safe, :controller => :accessions, :action => :new, :accession_id => @accession.id %>
+                  </li>
                   <li>
                     <%= link_to "<span class='icon-resource'></span> #{I18n.t("resource._singular")}".html_safe, :controller => :resources, :action => :new, :accession_id => @accession.id %>
                   </li>
