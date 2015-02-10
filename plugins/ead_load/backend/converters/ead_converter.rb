@@ -80,7 +80,8 @@ class EADConverter < Converter
           # end
           set obj, :id_0, inner_xml
         when 'archival_object'
-          set obj, :component_id, inner_xml.gsub(/[\/_\-.]/, '_')
+          #set obj, :component_id, inner_xml.gsub(/[\/_\-.]/, '_')
+          set obj, :component_id, inner_xml
         end
       end
     end
@@ -440,7 +441,7 @@ class EADConverter < Converter
     end
 
 
-    with 'langusage' do
+    with 'language' do
       set :finding_aid_language, inner_xml
     end
 
@@ -573,19 +574,26 @@ class EADConverter < Converter
       set ancestor(:resource, :archival_object), :linked_agents, {'ref' => corp.uri, 'role' => opts[:role]}
     end
 
-    @all_name = inner_xml.split('|')
-    @primary_name = @all_name[0]
-    @sub_name1 = @all_name[1]
-    @dates = @all_name[2]
-    @qualifier = @all_name[3]
+    @primary_name = inner_xml
+    @sub_name1 = ''
+    @dates = ''
+    @qualifier = ''
 
-    Log.debug('********** name_corp primary_name ' + @all_name[0] )
-    Log.debug('********** name_corp sub_name1 ' + @all_name[1])
-    Log.debug('********** name_corp dates ' + @all_name[2])
+    if inner_xml.include? '|'
+      @all_name = inner_xml.split('|')
+      @primary_name = @all_name[0]
+      @sub_name1 = @all_name[1]
+      @dates = @all_name[2]
+      @qualifier = @all_name[3]
+    end
+
+    Log.info('********** name_corp primary_name ' + @primary_name )
+    Log.info('********** name_corp sub_name1 ' + @sub_name1)
+    Log.info('********** name_corp dates ' + @dates)
     if @qualifier.nil?
-      Log.debug('********** name_corp qualifier is empty')
+      Log.info('********** name_corp qualifier is empty')
     else
-      Log.debug('********** name_corp qualifier ' + @all_name[3])
+      Log.info('********** name_corp qualifier ' + @qualifier)
 
     end
 
@@ -611,16 +619,29 @@ class EADConverter < Converter
       set ancestor(:resource, :archival_object), :linked_agents, {'ref' => family.uri, 'role' => opts[:role]}
     end
 
-    @all_name = inner_xml.split('|')
-    @family_name = @all_name[0]
-    @prefix = @all_name[1]
-    @dates = @all_name[2]
-    @qualifier = @all_name[3]
+    @primary_name = inner_xml
+    @family_name  = ''
+    @prefix  = ''
+    @dates  = ''
+    @qualifier = ''
 
-    Log.debug('********** name_family family_name ' + @family_name )
-    Log.debug('********** name_family prefix ' + @prefix )
-    Log.debug('********** name_family dates ' + @dates )
-    Log.debug('********** name_family qualifier ' + @qualifier)
+    if inner_xml.include? '|'
+      @all_name = inner_xml.split('|')
+      @family_name = @all_name[0]
+      @prefix = @all_name[1]
+      @dates = @all_name[2]
+      @qualifier = @all_name[3]
+    end
+
+    Log.info('********** name_family family_name ' + @family_name )
+    Log.info('********** name_family prefix ' + @prefix )
+    Log.info('********** name_family dates ' + @dates )
+    if @qualifier.nil?
+      Log.info('********** name_corp qualifier is empty')
+    else
+      Log.info('********** name_corp qualifier ' + @qualifier )
+
+    end
 
     make :name_family, {
       :family_name => @family_name,
@@ -645,18 +666,34 @@ class EADConverter < Converter
     end
 
 
-    @all_name = inner_xml.split('|')
-    @primary_name = @all_name[0]
-    @title = @all_name[1]
-    @rest_of_name = @all_name[2]
-    @dates = @all_name[3]
-    @qualifier = @all_name[4]
+    @primary_name = inner_xml
+    @rest_of_name  = ''
+    @title  = ''
+    @dates  = ''
+    @qualifier = ''
 
-    Log.debug('********** name_person primary_name ' + @primary_name )
-    Log.debug('********** name_person rest_of_name ' + @rest_of_name )
-    Log.debug('********** name_person title ' + @title )
-    Log.debug('********** name_person dates ' + @dates )
-    Log.debug('********** name_person qualifier ' + @qualifier )
+    Log.info('IMPORT PERSON ' + @primary_name)
+
+    if inner_xml.include? '|'
+      Log.info('PIPES primary_name ' + @primary_name )
+      @all_name = inner_xml.split('|')
+      Log.info('array length ' + @all_name.length.to_s)
+      @primary_name = @all_name[0]
+      Log.info('********** name_person primary_name ' + @primary_name )
+      @rest_of_name = @all_name[1]
+      Log.info('********** name_person rest_of_name ' + @rest_of_name )
+      @title = @all_name[2]
+      Log.info('********** name_person title ' + @title )
+      @dates = @all_name[3]
+      Log.info('********** name_person dates ' + @dates )
+      if @all_name.length > 4
+        @qualifier = @all_name[4]
+        Log.info('********** name_corp qualifier ' + @qualifier )
+      end
+    else
+      Log.info('IMPORT PERSON in else')
+    end
+
 
 
     make :name_person, {
