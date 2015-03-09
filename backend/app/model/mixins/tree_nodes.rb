@@ -17,6 +17,8 @@ module TreeNodes
     if self.parent_id.nil?
       # Set ourselves to the end of the list
       update_position_only(nil, nil)
+    else
+      update_position_only(self.parent_id, self.position)
     end
 
     children.each do |child|
@@ -24,6 +26,7 @@ module TreeNodes
     end
   end
 
+  
 
   def set_position_in_list(target_position, sequence)
     siblings_ds = self.class.dataset.
@@ -116,6 +119,7 @@ module TreeNodes
                     else
                       "root@#{root_uri}"
                     end
+      
 
       new_values = {
         :parent_id => parent_id,
@@ -123,7 +127,7 @@ module TreeNodes
         :position => Sequence.get(sequence),
         :system_mtime => Time.now
       }
-
+      
       # Run through the standard validation without actually saving
       self.set(new_values)
       self.validate
@@ -131,14 +135,22 @@ module TreeNodes
       if self.errors && !self.errors.empty?
         raise Sequel::ValidationFailed.new(self.errors)
       end
-
-      # Now do the update (without touching lock_version)
-      self.class.dataset.filter(:id => self.id).update(new_values)
-
+    
+     
+      # let's try and update the position. If it doesn't work, then we'll fix 
+      # the position when we set it in the list...there can be problems when
+      # transfering to another repo when there's holes in the tree...
+      DB.attempt {
+        self.class.dataset.filter(:id => self.id).update(new_values)
+      }.and_if_constraint_fails { 
+        new_values.delete(:position) 
+        self.class.dataset.filter(:id => self.id).update(new_values)
+      }
+     
       self.refresh
       self.set_position_in_list(position, sequence) if position
     else
-      raise "Root not set for record #{self}"
+      raise "Root not set for record #{self.inspect}"
     end
   end
 
@@ -154,12 +166,20 @@ module TreeNodes
 
 
   def transfer_to_repository(repository, transfer_group = [])
+    
+   
     # All records under this one will be transferred too
-    children.select(:id).each do |child|
+    children.each do |child|
       child.transfer_to_repository(repository, transfer_group + [self])
     end
-
-    super
+    
+    RequestContext.open(:repo_id => repository.id ) do
+      self.update_position_only(self.parent_id, self.position) unless self.root_record_id.nil?
+    end
+      
+    # ensure that the sequence if updated 
+    
+    super 
   end
 
 
@@ -307,6 +327,24 @@ module TreeNodes
     def handle_delete(ids_to_delete)
       self.filter(:id => ids_to_delete).update(:parent_id => nil)
       super
+    end
+
+    # this requences the class, which updates the Sequence with correct
+    # sequences
+    def resequence(repo_id)
+      RequestContext.open(:repo_id => repo_id) do
+        # get all the objects that are parents but not at top level or orphans 
+        $stderr.puts "Resequencing for #{self.class.to_s} in repo #{repo_id}" 
+        self.filter(~:position => nil, :repo_id => repo_id, ~:parent_id => nil, ~:root_record_id => nil ).select(:parent_id).group(:parent_id)
+            .each do |obj| 
+              $stderr.print "+" 
+              self.filter(:parent_id => obj.parent_id).order(:position).each_with_index do |child, i| 
+                $stderr.print "." 
+                child.update_position_only(child.parent_id, i) 
+            end 
+        end 
+        $stderr.puts "*"  
+      end 
     end
 
   end

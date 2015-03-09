@@ -19,6 +19,7 @@ require_relative 'lib/request_context'
 require_relative 'lib/reports/report_helper'
 require_relative 'lib/component_transfer'
 require_relative 'lib/progress_ticker'
+require_relative 'lib/resequencer'
 
 require 'solr_snapshotter'
 
@@ -90,6 +91,14 @@ class ArchivesSpaceService < Sinatra::Base
       end
 
       require_relative "model/ASModel"
+      
+      if AppConfig[:enable_jasper] 
+        require_relative 'model/reports/jasper_report' 
+        require_relative 'model/reports/jasper_report_register' 
+        JasperReport.compile if AppConfig[:compile_jasper] 
+        JasperReportRegister.register_reports
+      end
+
 
       [File.dirname(__FILE__), *ASUtils.find_local_directories('backend')].each do |prefix|
         ['model/mixins', 'model', 'model/reports', 'controllers'].each do |path|
@@ -104,7 +113,9 @@ class ArchivesSpaceService < Sinatra::Base
 
 
       BatchImportJobQueue.init if ASpaceEnvironment.environment != :unit_test
-      JasperReport.compile
+    
+
+
 
       if ASpaceEnvironment.environment == :production
         # Start the job scheduler
@@ -172,6 +183,7 @@ class ArchivesSpaceService < Sinatra::Base
 
       Notifications.notify("BACKEND_STARTED")
       Log.noisiness "Logger::#{AppConfig[:backend_log_level].upcase}"
+      Resequencer.run( [ :ArchivalObject,  :DigitalObjectComponent, :ClassificationTerm ] ) if AppConfig[:resequence_on_startup]
 
     rescue
       ASUtils.dump_diagnostics($!)
@@ -267,9 +279,11 @@ class ArchivesSpaceService < Sinatra::Base
 
   get '/' do
     sys_info =  DB.sysinfo.merge({ "archivesSpaceVersion" =>  ASConstants.VERSION}) 
+    
     request.accept.each do |type|
         case type
           when 'application/json'
+            content_type :json 
             halt sys_info.to_json
         end
     end  

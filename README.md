@@ -1,15 +1,16 @@
 ArchivesSpace README
 --------------------
 
-[![Build Status](http://54.187.182.145:8080/buildStatus/icon?job=ArchivesSpace)](http://54.187.182.145:8080/job/ArchivesSpace/)[![Code Climate](https://codeclimate.com/github/archivesspace/archivesspace.png)](https://codeclimate.com/github/archivesspace/archivesspace)
+[![Build Status](https://travis-ci.org/archivesspace/archivesspace.svg)](https://travis-ci.org/archivesspace/archivesspace.svg)[![Code Climate](https://codeclimate.com/github/archivesspace/archivesspace.png)](https://codeclimate.com/github/archivesspace/archivesspace)
 
 <http://archivesspace.org>
 
+IRC: #archivesspace ( chat.freenode.net )
 
 
 # System requirements
 
-* Java 1.6 or higher; Java 1.7+ recommended
+* Java 1.6 or higher; Java 1.7 recommended. Currently,  Java 1.8 requires removal of Jasper libraries from the Java classpath. 
 * At least 1024 MB RAM allocated to the application
 * A [supported browser](https://github.com/archivesspace/archivesspace/wiki/Supported-browsers)
 
@@ -29,6 +30,11 @@ You will need to have Java 1.6 (or newer) installed on your machine.
 You can check your Java version by running the command:
 
      java -version
+
+Currently, if you want to use Java 1.8, you will need to remove the
+jdt-compiler jar library from the java classpath ( lib directory of
+your ArchivesSpace directory). This will disable the use of Jasper
+reports ( but not regular reports).  
 
 When you extract the `.zip` file, it will create a directory called
 `archivesspace`.  To run the system, just execute the appropriate
@@ -66,6 +72,14 @@ repositories" at the top right hand side of the screen.  From the
 as creating and modifying user accounts.  **Be sure to change the
 "admin" user's password at this time.**
 
+# Configuring ArchivesSpace
+
+The primary configuration for ArchivesSpace is done in the config/config.rb
+file. By default, this file contains the default settings, which are indicated
+by commented out lines ( indicated by the "#" in the file ). You can adjust these 
+settings by adding new lines that change the default and restarting 
+ArchivesSpace. Be sure that your new settings are not commented out 
+( i.e. do NOT start with a "#" ), otherwise the settings will not take effect. 
 
 # Running ArchivesSpace as a Unix daemon
 
@@ -521,11 +535,16 @@ The latest technical documentation, including API documentation and
 architecture notes, is published at
 [http://archivesspace.github.io/archivesspace/doc](http://archivesspace.github.com/archivesspace/doc/).
 
+# Contributing
+
+Contributors are welcome! Please read about our [Contributor License Agreement](https://github.com/archivesspace/archivesspace/tree/master/contributing) for more information. 
+
 # License
 
 ArchivesSpace is released under the [Educational Community License,
 version 2.0](http://opensource.org/licenses/ecl2.php). See the
 [COPYING](COPYING) file for more information.
+
 
 # Credits
 

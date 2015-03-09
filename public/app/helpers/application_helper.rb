@@ -11,6 +11,19 @@ module ApplicationHelper
     @title = title
   end
 
+  def title_or_finding_aid_filing_title(resource)
+    if resource["finding_aid_filing_title"] && !resource["finding_aid_filing_title"].nil? && resource["finding_aid_filing_title"].length > 0
+      title = resource["finding_aid_filing_title"]
+    elsif resource["title"] && !resource["title"].nil?
+      title = resource["title"]
+    else
+      title = resource["display_string"]
+    end
+    MixedContentParser::parse(title, url_for(:root))
+  
+  
+  end
+  
   def icon_for(type)
     "<span class='icon-#{type}' title='#{I18n.t("#{type}._singular")}'></span>".html_safe
   end

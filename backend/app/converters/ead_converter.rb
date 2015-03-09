@@ -41,7 +41,22 @@ class EADConverter < Converter
       return  node.inner_xml.strip.empty? 
     end
   end
-
+  
+  # A lot of nodes need tweaking to format the content. Like, people love their p's but they don't
+  # actually want to ever see them. 
+  def format_content(content)
+  	return content if content.nil?
+    content.delete!("\n") # first we remove all linebreaks, since they're probably unintentional  
+    content.gsub("<p>","").gsub("</p>","\n\n" ).gsub("<p/>","\n\n")
+  		   .gsub("<lb/>", "\n\n").gsub("<lb>","\n\n").gsub("</lb>","")
+  	     .strip
+  end
+  
+  
+  # the act of ignoring is simply switching the ignore to false. 
+  def ignore 
+    @ignore = false
+  end
 
   # alright, wtf.
   # sometimes notes can have things like  lists jammed in them. we need to break those 
@@ -91,6 +106,17 @@ class EADConverter < Converter
     end
 
 
+    # we need to ignore everything on titlepage
+    %w{address author bibseries blockquote chronlist date edition list list/item list/defitem note
+      num p publisher sponsor subtitle table titleproper  }.each do |node_type|
+
+      with "titlepage/#{node_type}" do
+        @ignore = true 
+      end
+
+    end
+
+
     with 'archdesc' do
       set :level, att('level') || 'otherlevel'
       set :other_level, att('otherlevel')
@@ -130,9 +156,11 @@ class EADConverter < Converter
 
     with 'unittitle' do |node|
       ancestor(:note_multipart, :resource, :archival_object) do |obj|
-        klass =  obj.class.record_type
-        obj.title = Nokogiri::XML::DocumentFragment.parse(inner_xml.strip).to_xml(:encoding => 'utf-8') unless klass == "note_multipart" 
-
+        unless obj.class.record_type == "note_multipart"   
+          title = Nokogiri::XML::DocumentFragment.parse(inner_xml.strip)
+          title.xpath(".//unitdate").remove 
+          obj.title = format_content( title.to_xml(:encoding => 'utf-8') ) 
+        end
       end
     end
 
@@ -199,11 +227,11 @@ class EADConverter < Converter
       end
 
       if make_note_too
-        content = physdesc.to_xml(:encoding => 'utf-8')
+        content =  physdesc.to_xml(:encoding => 'utf-8') 
         make :note_singlepart, {
           :type => 'physdesc',
           :persistent_id => att('id'),
-          :content => content.sub(/<head>.*?<\/head>/, '').strip
+          :content => format_content( content.sub(/<head>.*?<\/head>/, '').strip )
         } do |note|
           set ancestor(:resource, :archival_object), :notes, note
         end
@@ -228,11 +256,11 @@ class EADConverter < Converter
 
     %w(bibliography index).each do |x|
       with "#{x}/head" do |node|
-        set :label, inner_xml
+        set :label,  format_content( inner_xml )
       end
 
       with "#{x}/p" do
-        set :content, inner_xml
+        set :content, format_content( inner_xml )
       end
     end
 
@@ -257,7 +285,7 @@ class EADConverter < Converter
       with "indexentry/#{k}" do |node|
         make :note_index_item, {
           :type => v,
-          :value => inner_xml
+          :value => format_content( inner_xml )
         } do |item|
           set ancestor(:note_index), :items, item
         end
@@ -269,7 +297,7 @@ class EADConverter < Converter
         make :note_index_item, {
           :type => 'name',
           :value => inner_xml,
-          :reference_text => inner_xml,
+          :reference_text => format_content( inner_xml ),
           :reference =>  att('target')
         } do |item|
           set ancestor(:note_index), :items, item
@@ -282,7 +310,7 @@ class EADConverter < Converter
        bioghist custodhist dimensions \
        fileplan odd otherfindaid originalsloc phystech \
        prefercite processinfo relatedmaterial scopecontent \
-       separatedmaterial userestrict).each do |note|
+       separatedmaterial userestrict ).each do |note|
       with note do |node|
         content = inner_xml.tap {|xml|
           xml.sub!(/<head>.*?<\/head>/m, '')
@@ -295,7 +323,7 @@ class EADConverter < Converter
           :persistent_id => att('id'),
           :subnotes => {
             'jsonmodel_type' => 'note_text',
-            'content' => content.strip
+            'content' => format_content( content )
           }
         } do |note|
           set ancestor(:resource, :archival_object), :notes, note
@@ -316,7 +344,7 @@ class EADConverter < Converter
         make :note_singlepart, {
           :type => note,
           :persistent_id => att('id'),
-          :content => content.sub(/<head>.*?<\/head>/, '').strip
+          :content => format_content( content.sub(/<head>.*?<\/head>/, '') )
         } do |note|
           set ancestor(:resource, :archival_object), :notes, note
         end
@@ -325,17 +353,23 @@ class EADConverter < Converter
 
 
     with 'notestmt/note' do
-      append :finding_aid_note, inner_xml
+      append :finding_aid_note, format_content( inner_xml )
     end
 
 
     with 'chronlist' do
-     
-      # the list is in a subnote. We need to make a new list subnote, insert
-      # it into the middle of the last subnote, and put the remaining content
-      # in after the list....
-      left_overs = insert_into_subnotes("chronlist") 
-      
+      next ignore if @ignore 
+      if  ancestor(:note_multipart)
+        left_overs = insert_into_subnotes 
+      else 
+        left_overs = nil 
+        make :note_multipart, {
+          :type => node.name,
+          :persistent_id => att('id'),
+        } do |note|
+          set ancestor(:resource, :archival_object), :notes, note
+        end
+      end
       
       make :note_chronology do |note|
         set ancestor(:note_multipart), :subnotes, note
@@ -356,15 +390,27 @@ class EADConverter < Converter
     %w(eventgrp/event chronitem/event).each do |path|
       with path do
         context_obj.items.last['events'] ||= []
-        context_obj.items.last['events'] << inner_xml
+        context_obj.items.last['events'] << format_content( inner_xml )
       end
     end
 
 
     with 'list' do
+      next ignore if @ignore 
+       
+      if  ancestor(:note_multipart)
+        left_overs = insert_into_subnotes 
+      else 
+        left_overs = nil 
+        make :note_multipart, {
+          :type => 'odd',
+          :persistent_id => att('id'),
+        } do |note|
+          set ancestor(:resource, :archival_object), :notes, note
+        end
+      end
       
-      left_overs = insert_into_subnotes 
-     
+      
       # now let's make the subnote list 
       type = att('type')
       if type == 'deflist' || (type.nil? && inner_xml.match(/<deflist>/))
@@ -379,6 +425,7 @@ class EADConverter < Converter
         end
       end
       
+      
       # and finally put the leftovers back in the list of subnotes...
       if ( !left_overs.nil? && left_overs["content"] && left_overs["content"].length > 0 ) 
         set ancestor(:note_multipart), :subnotes, left_overs 
@@ -388,21 +435,25 @@ class EADConverter < Converter
 
 
     with 'list/head' do |node|
-      set :title, inner_xml
+      next ignore if @ignore 
+      set :title, format_content( inner_xml ) 
     end
 
 
     with 'defitem' do |node|
+      next ignore if @ignore 
       context_obj.items << {}
     end
 
     with 'defitem/label' do |node|
-      context_obj.items.last['label'] = inner_xml if context == :note_definedlist
+      next ignore if @ignore 
+      context_obj.items.last['label'] = format_content( inner_xml ) if context == :note_definedlist
     end
 
 
     with 'defitem/item' do |node|
-      context_obj.items.last['value'] =  inner_xml if context == :note_definedlist
+      next ignore if @ignore 
+      context_obj.items.last['value'] =   format_content( inner_xml ) if context == :note_definedlist
     end
 
 
@@ -417,6 +468,7 @@ class EADConverter < Converter
 
 
     with 'date' do
+      next ignore if @ignore 
       if context == :note_chronology
         date = inner_xml
         context_obj.items.last['event_date'] = date
@@ -426,50 +478,61 @@ class EADConverter < Converter
 
     with 'head' do
       if context == :note_multipart
-        set :label, inner_xml
+        set :label, format_content( inner_xml ) 
       elsif context == :note_chronology
-        set :title, inner_xml
+        set :title, format_content( inner_xml )
       end
     end
 
 
     # example of a 1:many tag:record relation (1+ <container> => 1 instance with 1 container)
     with 'container' do
+      
+      @containers ||= {} 
+      
+      # we've found that the container has a parent att and the parent is in
+      # our queue
+      if att("parent") && @containers[att('parent')] 
+        cont = @containers[att('parent')] 
 
-      if context_obj.instances.empty?
+      else 
+        instance_label = att("label") ? att("label").downcase : 'mixed_materials'
         make :instance, {
-          :instance_type => 'mixed_materials'
-        } do |instance|
-          set ancestor(:resource, :archival_object), :instances, instance
+            :instance_type => instance_label
+          } do |instance|
+            set ancestor(:resource, :archival_object), :instances, instance
         end
-      end
 
-      inst = context == :instance ? context_obj : context_obj.instances.last
-
-      if inst.container.nil?
+        inst = context_obj
+       
         make :container do |cont|
           set inst, :container, cont
         end
+
+        cont =  inst.container 
       end
-
-      cont = inst.container || context_obj
-
+      
+      # now we fill it in
       (1..3).to_a.each do |i|
         next unless cont["type_#{i}"].nil?
         cont["type_#{i}"] = att('type')
-        cont["indicator_#{i}"] = inner_xml
+        cont["indicator_#{i}"] = format_content( inner_xml )
         break
       end
+      #store it here incase we find it has a parent 
+      @containers[att("id")] = cont 
+    
     end
 
 
     with 'author' do
+      next ignore if @ignore 
       set :finding_aid_author, inner_xml
     end
 
 
     with 'descrules' do
-      set :finding_aid_description_rules, inner_xml
+      set :finding_aid_description_rules, format_content( inner_xml )
     end
 
 
@@ -480,38 +543,40 @@ class EADConverter < Converter
 
 
     with 'editionstmt' do
-      set :finding_aid_edition_statement, inner_xml
+      set :finding_aid_edition_statement, format_content( inner_xml )
     end
 
 
     with 'seriesstmt' do
-      set :finding_aid_series_statement, inner_xml
+      set :finding_aid_series_statement, format_content( inner_xml )
     end
 
 
     with 'sponsor' do
-      set :finding_aid_sponsor, inner_xml
+      next ignore if @ignore 
+      set :finding_aid_sponsor, format_content( inner_xml )
     end
 
 
     with 'titleproper' do
+      next ignore if @ignore 
       type = att('type')
       case type
       when 'filing'
-        set :finding_aid_filing_title, inner_xml
+        set :finding_aid_filing_title, format_content( inner_xml )
       else
-        set :finding_aid_title, inner_xml
+        set :finding_aid_title, format_content( inner_xml )
       end
     end
 
 
     with 'langusage' do
-      set :finding_aid_language, inner_xml
+      set :finding_aid_language, format_content( inner_xml ) 
     end
 
 
     with 'revisiondesc' do
-      set :finding_aid_revision_description, inner_xml
+      set :finding_aid_revision_description, format_content( inner_xml )
     end
 
 
@@ -589,7 +654,7 @@ class EADConverter < Converter
     
     with 'daodesc' do
         make :note_digital_object, {
-          :type => node.name,
+          :type => 'note',
           :persistent_id => att('id'),
           :content => inner_xml.strip
         } do |note|

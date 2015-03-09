@@ -196,7 +196,8 @@ class CommonIndexer
 
     add_document_prepare_hook {|doc, record|
       if doc['primary_type'] == 'resource'
-        doc['finding_aid_title'] = record['record']['finding_aid_title'] if record['record']['finding_aid_status'] === 'completed'
+        doc['finding_aid_title'] = record['record']['finding_aid_title'] 
+        doc['finding_aid_filing_title'] = record['record']['finding_aid_filing_title'] 
         doc['identifier'] = (0...4).map {|i| record['record']["id_#{i}"]}.compact.join("-")
         doc['resource_type'] = record['record']['resource_type']
         doc['level'] = record['record']['level']
@@ -310,9 +311,9 @@ class CommonIndexer
         docs << {
           'id' => "#{record['uri']}##{parent_type}_collection_management",
           'parent_id' => record['uri'],
-          'parent_title' => record['record']['title'],
+          'parent_title' => record['record']['title'] || record['record']['display_string'],
           'parent_type' => parent_type,
-          'title' => record['record']['title'],
+          'title' => record['record']['title'] || record['record']['display_string'],
           'types' => ['collection_management'],
           'primary_type' => 'collection_management',
           'json' => cm.to_json(:max_nesting => false),
@@ -487,7 +488,13 @@ class CommonIndexer
       doc = {}
 
       doc['id'] = uri
-      doc['title'] = values['title']
+     
+      if ( !values["finding_aid_filing_title"].nil? && values["finding_aid_filing_title"].length > 0 )
+        doc['title'] = values["finding_aid_filing_title"] 
+      else 
+        doc['title'] =  values['title']
+      end 
+        
       doc['primary_type'] = record_type
       doc['types'] = [record_type]
       doc['json'] = ASUtils.to_json(values)

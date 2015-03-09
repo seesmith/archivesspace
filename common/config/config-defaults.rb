@@ -116,7 +116,17 @@ AppConfig[:report_pdf_font_paths] = proc { ["#{AppConfig[:backend_url]}/reports/
 AppConfig[:report_pdf_font_family] = "\"DejaVu Sans\", sans-serif"
 
 # Plug-ins to load. They will load in the order specified
-AppConfig[:plugins] = ['local', 'aspace_feedback']
+AppConfig[:plugins] = ['local', 'aspace_feedback', 'aspace-public-formats']
+
+
+# 
+# The following are used by the aspace-public-formats plugin
+# https://github.com/archivesspace/aspace-public-formats
+AppConfig[:public_formats_resource_links] = []
+AppConfig[:public_formats_digital_object_links] = []
+AppConfig[:xsltproc_path] = nil
+AppConfig[:xslt_path] = nil
+
 
 # Allow an unauthenticated user to create an account
 AppConfig[:allow_user_registration] = true
@@ -142,3 +152,19 @@ AppConfig[:import_timeout_seconds] = 300
 AppConfig[:import_jobs_cancelable] = proc { (AppConfig[:db_url] != AppConfig.demo_db_url).to_s }
 
 AppConfig[:max_location_range] = 1000
+
+
+# Jasper Reports
+# (https://community.jaspersoft.com/project/jasperreports-library) 
+# require compilation. This can be done at startup. Please note, if you are
+# using Java 8 and you want to compile at startup, keep this setting at false,
+# but be sure to use the JDK version.
+AppConfig[:enable_jasper] = true 
+AppConfig[:compile_jasper] = false
+
+# There are some conditions that has caused tree nodes ( ArchivalObjects, DO
+# Components, and ClassificationTerms) to lose their sequence pointers and
+# position setting. This will resequence these tree nodes prior to startup.
+# If is recogmended that this be used very infrequently and should not be set
+# to true for all startups ( as it will take a considerable amount of time )
+AppConfig[:resequence_on_startup] = false

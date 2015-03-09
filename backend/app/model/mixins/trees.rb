@@ -12,6 +12,7 @@ module Trees
          this_repo.filter(:root_record_id => old_parent.id,
                           :parent_id => nil).each do |root_child|
       root_child.set_root(self)
+    
     end
   end
 
@@ -161,6 +162,10 @@ module Trees
       :children => top_nodes.sort_by(&:first).map {|position, node| self.class.assemble_tree(node, links, properties)},
       :record_uri => self.class.uri_for(root_type, self.id)
     }
+    
+    if  self.respond_to?(:finding_aid_filing_title) && !self.finding_aid_filing_title.nil? && self.finding_aid_filing_title.length > 0
+      result[:finding_aid_filing_title] = self.finding_aid_filing_title
+    end
 
     load_root_properties(result, ids_of_interest)
 
@@ -169,16 +174,15 @@ module Trees
 
 
   def transfer_to_repository(repository, transfer_group = [])
-    super
+    obj = super
     
     # All records under this one will be transferred too
-    children.select(:id).each do |child|
+    
+    children.each do |child|
       child.transfer_to_repository(repository, transfer_group + [self])
     end
-    RequestContext.open(:repo_id => repository.id) do
-      self.adopt_children(self)
-    end
 
+    obj
   end
 
 

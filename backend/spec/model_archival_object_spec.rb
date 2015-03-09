@@ -113,8 +113,18 @@ describe 'ArchivalObject model' do
     JSONModel::strict_mode(true)
     
   end
+  
+  it "throws an error if you attempt to add a value to the archival_record_level" do
 
+    opts = {:level => "HAMBURGER!"}
 
+    expect { ArchivalObject.create_from_json(
+                                build(:json_archival_object, opts),
+                                :repo_id => $repo_id)
+    }.to raise_error(JSONModel::ValidationException)
+    
+  end
+  
   it "enforces ref_id uniqueness only within a resource" do
     res1 = create(:json_resource)
     res2 = create(:json_resource)
@@ -309,6 +319,41 @@ describe 'ArchivalObject model' do
     
     expect {
       ao.add_children(children) 
+    }.to_not raise_error
+  
+  end
+  
+  it "you can resequence children" do
+    resource = create(:json_resource)
+    ao = ArchivalObject.create_from_json( build(:json_archival_object, :resource => {:ref => resource.uri}))
+
+    archival_object_1 = build(:json_archival_object)
+    archival_object_2 = build(:json_archival_object)
+
+    children = JSONModel(:archival_record_children).from_hash({
+      "children" => [archival_object_1, archival_object_2]
+    })
+    
+    
+    expect {
+      ao.add_children(children) 
+    }.to_not raise_error
+    
+    ao = ArchivalObject.get_or_die(ao.id)
+    ao.children.all.length.should == 2
+    # now add more!
+    archival_object_3 = build(:json_archival_object)
+    archival_object_4 = build(:json_archival_object)
+    
+
+    children = JSONModel(:archival_record_children).from_hash({
+      "children" => [archival_object_3, archival_object_4]
+    })
+    ao.add_children(children) 
+   
+    
+    expect {
+      ArchivalObject.resequence( ao.repo_id )
     }.to_not raise_error
   
   end

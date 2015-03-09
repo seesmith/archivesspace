@@ -59,7 +59,9 @@ describe 'Export Mappings' do
                        :notes => build_archival_object_notes(100) + [@mixed_subnotes_tracer],
                        :subjects => @subjects.map{|ref, s| {:ref => ref}},
                        :instances => instances,
-                       :finding_aid_status => %w(completed in_progress under_revision unprocessed).sample
+                       :finding_aid_status => %w(completed in_progress under_revision unprocessed).sample,
+                       :finding_aid_filing_title => "this is a filing title",
+                       :finding_aid_series_statement => "here is the series statement"
                        )
 
     @resource = JSONModel(:resource).find(resource.id)
@@ -193,17 +195,14 @@ describe 'Export Mappings' do
         end
       end
        
-      
-      xsd = Nokogiri::XML::Schema(open('http://www.loc.gov/ead/ead.xsd'))
-      
-      xsd.valid?(@doc).should be_true
+
       @doc.errors.length.should == 0 
 
       # if the word Nokogiri appears in the XML file, we'll assume something
       # has gone wrong
       @doc.to_xml.should_not include("Nokogiri")
       @doc.to_xml.should_not include("#&amp;")
-
+      @doc.to_xml.should_not include("ASPACE EXPORT ERROR")
 end
 
 
@@ -263,8 +262,8 @@ end
             end
             
             mt(head_text, "#{path}/head")
-            regcontent = content.split(/\n|\r/).map { |c| ".*?[\r\n]*.*?#{c.strip}" } 
-            mt(/^.*?#{head_text}.*?[\r\n]*.*?#{regcontent}.*?$/m, "#{path}")
+            regcontent = content.split(/\n\n|\r/).map { |c| ".*?[\r\n\n]*.*?#{c.strip}" } 
+            mt(/^.*?#{head_text}.*?[\r\n\n]*.*?#{regcontent}.*?$/m, "#{path}")
           end
         end
       end
@@ -729,7 +728,11 @@ end
       end
 
       it "maps resource.finding_aid_title to filedesc/titlestmt/titleproper" do
-        mt(@resource.finding_aid_title, "eadheader/filedesc/titlestmt/titleproper[@type != 'filing']")
+        mt(@resource.finding_aid_title, "eadheader/filedesc/titlestmt/titleproper[not(@type)]")
+      end
+      
+      it "maps resource.finding_aid_filing_title to filedesc/titlestmt/titleproper" do
+        mt(@resource.finding_aid_filing_title, "eadheader/filedesc/titlestmt/titleproper[@type = 'filing']")
       end
 
       it "maps resource.(id_0|id_1|id_2|id_3) to filedesc/titlestmt/titleproper/num" do
@@ -919,16 +922,29 @@ end
 
       it "maps each resource.instances[].instance.digital_object to archdesc/dao" do
         digital_objects.each do |obj|
-          fv = obj['file_versions'][0] || {}
-          href = fv["file_uri"] || obj.digital_object_id
-          path = "/xmlns:ead/xmlns:archdesc/xmlns:dao[@xlink:href='#{href}']"
-          content = description_content(obj)
-          xlink_actuate_attribute = fv['xlink_actuate_attribute'] || 'onRequest'
-          mt(xlink_actuate_attribute, path, 'xlink:actuate')
-          xlink_show_attribute = fv['xlink_show_attribute'] || 'new'
-          mt(xlink_show_attribute, path, 'xlink:show')
-          mt(obj.title, path, 'xlink:title')
-          mt(content, "#{path}/xmlns:daodesc/xmlns:p")
+          if obj['file_versions'].length > 0
+            obj['file_versions'].each do |fv|
+              href = fv["file_uri"] || obj.digital_object_id
+              path = "/xmlns:ead/xmlns:archdesc/xmlns:dao[@xlink:href='#{href}']"
+              content = description_content(obj)
+              xlink_actuate_attribute = fv['xlink_actuate_attribute'] || 'onRequest'
+              mt(xlink_actuate_attribute, path, 'xlink:actuate')
+              xlink_show_attribute = fv['xlink_show_attribute'] || 'new'
+              mt(xlink_show_attribute, path, 'xlink:show')
+              mt(obj.title, path, 'xlink:title')
+              mt(content, "#{path}/xmlns:daodesc/xmlns:p")
+            end
+          else
+              href =  obj.digital_object_id
+              path = "/xmlns:ead/xmlns:archdesc/xmlns:dao[@xlink:href='#{href}']"
+              content = description_content(obj)
+              xlink_actuate_attribute =  'onRequest'
+              mt(xlink_actuate_attribute, path, 'xlink:actuate')
+              xlink_show_attribute =  'new'
+              mt(xlink_show_attribute, path, 'xlink:show')
+              mt(obj.title, path, 'xlink:title')
+              mt(content, "#{path}/xmlns:daodesc/xmlns:p")
+          end
         end
       end
 

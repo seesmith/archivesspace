@@ -13,10 +13,9 @@ describe 'EAD converter' do
   let (:test_doc_1) {
     src = <<ANEAD
 <c id="1" level="file">
-  <unittitle>oh well</unittitle>
+  <unittitle>oh well<unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate></unittitle>
   <container id="cid1" type="Box" label="Text">1</container>
   <container parent="cid2" type="Folder"></container>
-  <unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate>
   <c id="2" level="file">
     <unittitle>whatever</unittitle>
     <container id="cid3" type="Box" label="Text">FOO</container>
@@ -34,7 +33,18 @@ ANEAD
     parsed = JSON(IO.read(converter.get_output_path))
 
     parsed.length.should eq(3)
-    parsed.find{|r| r['ref_id'] == '1'}['instances'][0]['container']['type_2'].should eq('Folder')
+    parsed.find{|r| r['ref_id'] == '1'}['instances'][1]['container']['type_1'].should eq('Folder')
+  end
+  
+  it "should remove unitdate from unittitle" do
+    converter = EADConverter.new(test_doc_1)
+    converter.run
+    parsed = JSON(IO.read(converter.get_output_path))
+
+    parsed.length.should eq(3)
+    parsed.find{|r| r['ref_id'] == '1'}['title'].should eq('oh well')
+    parsed.find{|r| r['ref_id'] == '1'}['dates'][0]['expression'].should eq("1907-1911")
+  
   end
 
   it "should be link to existing agents with authority_id" do
@@ -172,11 +182,11 @@ ANEAD
     end
 
     it "maps '<editionstmt>' correctly" do
-      @resource['finding_aid_edition_statement'].should eq("<p>Resource-FindingAidEdition-AT</p>")
+      @resource['finding_aid_edition_statement'].should eq("Resource-FindingAidEdition-AT")
     end
 
     it "maps '<seriesstmt>' correctly" do
-      @resource['finding_aid_series_statement'].should eq("<p>Resource-FindingAidSeries-AT</p>")
+      @resource['finding_aid_series_statement'].should eq("Resource-FindingAidSeries-AT")
     end
 
     it "maps '<sponsor>' correctly" do
@@ -187,7 +197,7 @@ ANEAD
     end
 
     it "maps '<titleproper>' correctly" do
-      @resource['finding_aid_title'].should eq("Resource-FindingAidTitle-AT\n<num>Resource.ID.AT</num>")
+      @resource['finding_aid_title'].should eq("Resource-FindingAidTitle-AT <num>Resource.ID.AT</num>")
     end
 
     it "maps '<titleproper type=\"filing\">' correctly" do
@@ -199,7 +209,7 @@ ANEAD
     end
 
     it "maps '<revisiondesc>' correctly" do
-      @resource['finding_aid_revision_description'].should eq("<change>\n<date>Resource-FindingAidRevisionDate-AT</date>\n<item>Resource-FindingAidRevisionDescription-AT</item>\n</change>")
+      @resource['finding_aid_revision_description'].should eq("<change> <date>Resource-FindingAidRevisionDate-AT</date> <item>Resource-FindingAidRevisionDescription-AT</item> </change>")
     end
 
     # NAMES
@@ -340,28 +350,28 @@ ANEAD
         note_content(note)
       }.flatten
 
-      nc[0].should eq("<p>Resource-ConditionsGoverningAccess-AT</p>")
+      nc[0].should eq("Resource-ConditionsGoverningAccess-AT")
       nc[1].should eq("<legalstatus>Resource-LegalStatus-AT</legalstatus>")
     end
 
     it "maps '<accruals>' correctly" do
-      note_content(get_note_by_type(@resource, 'accruals')).should eq("<p>Resource-Accruals-AT</p>")
+      note_content(get_note_by_type(@resource, 'accruals')).should eq("Resource-Accruals-AT")
     end
 
     it "maps '<acqinfo>' correctly" do
-      note_content(get_note_by_type(@resource, 'acqinfo')).should eq("<p>Resource-ImmediateSourceAcquisition</p>")
+      note_content(get_note_by_type(@resource, 'acqinfo')).should eq("Resource-ImmediateSourceAcquisition")
     end
 
     it "maps '<altformavail>' correctly" do
-      note_content(get_note_by_type(@resource, 'altformavail')).should eq("<p>Resource-ExistenceLocationCopies-AT</p>")
+      note_content(get_note_by_type(@resource, 'altformavail')).should eq("Resource-ExistenceLocationCopies-AT")
     end
 
     it "maps '<appraisal>' correctly" do
-      note_content(get_note_by_type(@resource, 'appraisal')).should eq("<p>Resource-Appraisal-AT</p>")
+      note_content(get_note_by_type(@resource, 'appraisal')).should eq("Resource-Appraisal-AT")
     end
 
     it "maps '<arrangement>' correctly" do
-      note_content(get_note_by_type(@resource, 'arrangement')).should eq("<p>Resource-Arrangement-Note</p>")
+      note_content(get_note_by_type(@resource, 'arrangement')).should eq("Resource-Arrangement-Note")
     end
 
     it "maps '<bioghist>' correctly" do
@@ -371,7 +381,7 @@ ANEAD
     end
 
     it "maps '<custodhist>' correctly" do
-      note_content(get_note_by_type(@resource, 'custodhist')).should eq("<p>Resource--CustodialHistory-AT</p>")
+      note_content(get_note_by_type(@resource, 'custodhist')).should eq("Resource--CustodialHistory-AT")
     end
 
     it "maps '<dimensions>' correctly" do
@@ -379,7 +389,7 @@ ANEAD
     end
 
     it "maps '<fileplan>' correctly" do
-      note_content(get_note_by_type(@resource, 'fileplan')).should eq("<p>Resource-FilePlan-AT</p>")
+      note_content(get_note_by_type(@resource, 'fileplan')).should eq("Resource-FilePlan-AT")
     end
 
     it "maps '<langmaterial>' correctly" do
@@ -398,8 +408,7 @@ ANEAD
       # 	IF nested in <archdesc> OR <c>
 
       # 	ELSE, IF nested in <notestmnt>
-      @resource['finding_aid_note'].should eq("<p>Resource-FindingAidNote-AT</p>")
-      # 	ELSE
+      @resource['finding_aid_note'].should eq("Resource-FindingAidNote-AT\n\nResource-FindingAidNote-AT2\n\nResource-FindingAidNote-AT3\n\nResource-FindingAidNote-AT4") 
     end
 
     it "maps '<odd>' correctly" do
@@ -544,7 +553,7 @@ ANEAD
 
     it "maps '<container>' correctly" do
       i = @archival_objects['02']['instances'][0]
-      i['instance_type'].should eq('mixed_materials')
+      i['instance_type'].should eq('text')
       i['container']['indicator_1'].should eq('2')
       i['container']['indicator_2'].should eq('2')
       #   @type
@@ -599,6 +608,7 @@ ANEAD
           <processinfo/>                                                 
       </descgrp>  
       <unittitle>Resource--Title-AT</unittitle>
+      <unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate>
       <unitid>Resource.ID.AT</unitid>
       <physdesc>
        (folders 14–15 of 15 folders)
@@ -647,6 +657,7 @@ ANEAD
     <did>
       <unittitle>Resource--Title-AT</unittitle>
       <unitid>Resource.ID.AT</unitid>
+      <unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate>
       <physdesc>
         <extent>5.0 Linear feet</extent>
         <extent>Resource-ContainerSummary-AT</extent>
@@ -722,6 +733,7 @@ ANEAD
     <did>
       <unittitle>一般行政文件 [2]</unittitle>
       <unitid>Resource.ID.AT</unitid>
+      <unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate>
       <physdesc>
         <extent>5.0 Linear feet</extent>
         <extent>Resource-ContainerSummary-AT</extent>
@@ -751,6 +763,7 @@ ANEAD
     <did>
       <unittitle>Title</unittitle>
       <unitid>Resource.ID.AT</unitid>
+      <unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate>
       <langmaterial>
         <language langcode="eng">English</language>
       </langmaterial>
@@ -785,6 +798,7 @@ ANEAD
     <did>
       <unittitle>Title</unittitle>
       <unitid>Resource.ID.AT</unitid>
+      <unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate>
       <langmaterial>
         <language langcode="eng">English</language>
       </langmaterial>
@@ -809,6 +823,7 @@ ANEAD
     <did>
       <unittitle>Title</unittitle>
       <unitid>Resource.ID.AT</unitid>
+      <unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate>
       <langmaterial>
         <language langcode="eng">English</language>
       </langmaterial>
@@ -831,6 +846,7 @@ ANEAD
     <did>
       <unittitle>Title</unittitle>
       <unitid>Resource.ID.AT</unitid>
+      <unitdate normal="1907/1911" era="ce" calendar="gregorian" type="inclusive">1907-1911</unitdate>
       <langmaterial>
         <language langcode="eng">English</language>
       </langmaterial>
@@ -903,6 +919,38 @@ ANEAD
  
  end
 
+ 
+  describe "EAD With frontpage" do
+    
+    let(:test_file) {
+      File.expand_path("../app/exporters/examples/ead/vmi.xml", File.dirname(__FILE__))
+    }
 
 
+    before(:all) do
+      @parsed = convert(test_file)
+      @resource = @parsed.select {|rec| rec['jsonmodel_type'] == 'resource'}.last
+      @archival_objects = @parsed.select {|rec| rec['jsonmodel_type'] == 'archival_object'}
+    end
+
+    it "shouldn't overwrite the finding_aid_title/titleproper from frontpage" do
+      @resource["finding_aid_title"].should eq("Proper Title") 
+      @resource["finding_aid_title"].should_not eq("TITLEPAGE titleproper") 
+    end
+
+    it "should not have any of the titlepage content" do
+      @parsed.to_s.should_not include("TITLEPAGE")
+    end
+   
+    it "should have instances grouped by their container @id/@parent relationships" do
+      instances = @archival_objects.first["instances"] 
+      instances.length.should eq(3)
+      instances.each_with_index do |v,index|
+        
+        container = v["container"]
+        (1..( index + 1)) .to_a.each { |i|  container["indicator_#{i.to_s}"].should eq(( i + index ).to_s)  }
+      end
+    end
+
+  end
 end

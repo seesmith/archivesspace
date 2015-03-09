@@ -11,7 +11,6 @@ describe "ArchivesSpace user interface" do
     selenium_init($backend_start_fn, $frontend_start_fn)
     @indexer = RealtimeIndexer.new($backend, nil)
     @period = PeriodicIndexer.new
-    create_test_repo('target', 'target', true)
   end
 
 
@@ -381,14 +380,17 @@ describe "ArchivesSpace user interface" do
 
     it "can reorder the terms and have them maintain order" do
 
+      first = SecureRandom.hex
+      second = SecureRandom.hex
+
       $driver.find_element(:link => 'Create').click
       $driver.find_element(:link => 'Subject').click
       $driver.find_element(:css => "form #subject_terms_ button:not(.show-all)").click 
       $driver.find_element(:id => "subject_source_").select_option("local")
-      $driver.clear_and_send_keys([:id, "subject_terms__0__term_"], "first")
-      $driver.clear_and_send_keys([:id, "subject_terms__1__term_"], "second")
+      $driver.clear_and_send_keys([:id, "subject_terms__0__term_"], first)
+      $driver.clear_and_send_keys([:id, "subject_terms__1__term_"], second)
       $driver.find_element(:css => "form .record-pane button[type='submit']").click
-      assert(5) { $driver.find_element(:css => '.record-pane h2').text.should eq("first -- second Subject") }
+      assert(5) { $driver.find_element(:css => '.record-pane h2').text.should eq("#{first} -- #{second} Subject") }
       
       #drag to become sibling of parent
       source = $driver.find_element( :css => "#subject_terms__1_ .drag-handle" )
@@ -397,12 +399,12 @@ describe "ArchivesSpace user interface" do
       $driver.wait_for_ajax
       $driver.find_element(:css => "form .record-pane button[type='submit']").click
 
-      assert(5) { $driver.find_element(:css => '.record-pane h2').text.should eq("second -- first Subject") }
+      assert(5) { $driver.find_element(:css => '.record-pane h2').text.should eq("#{second} -- #{first} Subject") }
 
       # refresh the page and verify that the change really stuck
       $driver.navigate.refresh
-      target = $driver.find_element( :css => "#subject_terms__0__term_" ).attribute('value').should eq('second')
-      target = $driver.find_element( :css => "#subject_terms__1__term_" ).attribute('value').should eq('first')
+      target = $driver.find_element( :css => "#subject_terms__0__term_" ).attribute('value').should eq(second)
+      target = $driver.find_element( :css => "#subject_terms__1__term_" ).attribute('value').should eq(first)
 
     end
 
@@ -465,7 +467,7 @@ describe "ArchivesSpace user interface" do
 
 
     it "reports a warning when Authority ID is provided without a Source" do
-      $driver.clear_and_send_keys([:id, "agent_names__0__authority_id_"], "authid123")
+      $driver.clear_and_send_keys([:id, "agent_names__0__authority_id_"], SecureRandom.hex )
       $driver.clear_and_send_keys([:id, "agent_names__0__primary_name_"], "Hendrix")
 
       rules_select = $driver.find_element(:id => "agent_names__0__rules_")
@@ -479,7 +481,7 @@ describe "ArchivesSpace user interface" do
     it "auto generates Sort Name when other name fields upon save" do
       $driver.find_element(:id => "agent_names__0__source_").select_option("local")
 
-      $driver.clear_and_send_keys([:id, "agent_names__0__authority_id_"], "authid123")
+      $driver.clear_and_send_keys([:id, "agent_names__0__authority_id_"], SecureRandom.hex)
       $driver.clear_and_send_keys([:id, "agent_names__0__primary_name_"], "Hendrix")
 
       $driver.click_and_wait_until_gone(:css => "form .record-pane button[type='submit']")
@@ -1087,7 +1089,7 @@ describe "ArchivesSpace user interface" do
     it "can add collection management fields to an Accession" do
       $driver.click_and_wait_until_gone(:link, 'Edit')
        $accession_url = $driver.current_url
-      # add a rights sub record
+      # add a collection management sub record
       $driver.find_element(:css => '#accession_collection_management_ .subrecord-form-heading .btn:not(.show-all)').click
 
       $driver.clear_and_send_keys([:id => "accession_collection_management__cataloged_note_"], ["DONE!", :return])
@@ -1423,8 +1425,10 @@ describe "ArchivesSpace user interface" do
 
       # Try to navigate to the edit form
       $driver.get(digital_object_edit_url)
-
-      assert(5) { $driver.current_url.should eq(digital_object_url) }
+      # there seems to be some oddities with the JS and the URL...they don't
+      # matter to the app
+      url = digital_object_edit_url.split("#").first
+      assert(5) { $driver.current_url.include?(url).should be_true }
       assert(5) { $driver.find_element(:css => "div.alert.alert-info").text.should eq('Digital Object is suppressed and cannot be edited') }
     end
 
@@ -1485,6 +1489,15 @@ describe "ArchivesSpace user interface" do
         $driver.find_element_with_text('//div', /Event Created/).should_not be_nil
       }
     end
+  
+
+    it "should be searchable" do
+      run_index_round
+      $driver.find_element(:id, 'global-search-button').click
+      $driver.find_element(:link, "Event").click 
+      assert(5) { $driver.find_element_with_text("//h2", /Search Results/) }
+    end
+  
   end
 
 
@@ -1552,6 +1565,10 @@ describe "ArchivesSpace user interface" do
       $driver.clear_and_send_keys([:id, "resource_extents__0__number_"], "10")
       $driver.find_element(:id => "resource_extents__0__extent_type_").select_option("files")
 
+      $driver.find_element(:id => "resource_dates__0__date_type_").select_option("single")
+      $driver.clear_and_send_keys([:id, "resource_dates__0__begin_"], "1978")
+      
+
       $driver.find_element(:css => "form#resource_form button[type='submit']").click
 
       # Success!
@@ -1569,6 +1586,7 @@ describe "ArchivesSpace user interface" do
       $driver.find_element_with_text('//div[contains(@class, "error")]', /Identifier - Property is required but was missing/)
       $driver.find_element_with_text('//div[contains(@class, "error")]', /Title - Property is required but was missing/)
       $driver.find_element_with_text('//div[contains(@class, "error")]', /Number - Property is required but was missing/)
+      $driver.find_element_with_text('//div[contains(@class, "error")]', /Type - Property is required but was missing/)
       $driver.find_element_with_text('//div[contains(@class, "warning")]', /Language - Property was missing/)
 
       $driver.find_element(:css, "a.btn.btn-cancel").click
@@ -1585,6 +1603,9 @@ describe "ArchivesSpace user interface" do
 
       $driver.clear_and_send_keys([:id, "resource_title_"],(resource_title))
       @resource_id = $driver.complete_4part_id("resource_id_%d_")
+      
+      $driver.find_element(:id => "resource_dates__0__date_type_").select_option("single")
+      $driver.clear_and_send_keys([:id, "resource_dates__0__begin_"], "1978")
       
       $driver.clear_and_send_keys([:id, "resource_language__combobox"], ["eng", :return])
       $driver.find_element(:id, "resource_level_").select_option("collection")
@@ -1745,19 +1766,29 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:link => "Edit").click
     end
 
+    it "can add siblings" do
+       
+      [ "Christmas albums", "Tree decorations", "Nog"].each do |ao| 
+        $driver.click_and_wait_until_gone(:link, "Add Sibling")
+        $driver.clear_and_send_keys([:id, "archival_object_title_"], ao)
+        $driver.find_element(:id, "archival_object_level_").select_option("item")
+        $driver.click_and_wait_until_gone(:css, "form#archival_object_form button[type='submit']")
+      end
+    end
 
     it "can support dragging and dropping an archival object" do
+      $driver.navigate.refresh
       # first resize the tree pane (do it incrementally so it doesn't flip out...)
       pane_resize_handle = $driver.find_element(:css => ".ui-resizable-handle.ui-resizable-s")
       10.times {
-        $driver.action.drag_and_drop_by(pane_resize_handle, 0, 10).perform
+        $driver.action.drag_and_drop_by(pane_resize_handle, 0, 30).perform
       }
+      $driver.find_element(:css, "a[title~='December']").click
 
       source = $driver.find_element_with_text("//div[@id='archives_tree']//a", /Christmas cards/)
       target = $driver.find_element_with_text("//div[@id='archives_tree']//a", /Pony Express/)
       $driver.action.drag_and_drop(source, target).perform
       $driver.wait_for_ajax
-    
       target = $driver.find_element_with_text("//div[@id='archives_tree']//li", /Pony Express/)
       target.find_element_with_text(".//a", /Christmas cards/)
 
@@ -1765,12 +1796,77 @@ describe "ArchivesSpace user interface" do
       $driver.navigate.refresh
 
       target = $driver.find_element_with_text("//div[@id='archives_tree']//li", /Pony Express/)
-      target.find_element_with_text(".//a", /Christmas cards/)
-    end
+      target.find_element_with_text("//a", /Christmas cards/)
     
+      target = $driver.find_element(:xpath, "//div[@id='archives_tree']//li[a/@title='December']")
+      [ "Christmas albums", "Tree decorations", "Nog"].each do |ao| 
+          target.find_element_with_text(".//a", /#{ao}/)
+      end 
+    
+      
+      pane_resize_handle = $driver.find_element(:css => ".ui-resizable-handle.ui-resizable-s")
+      10.times {
+        $driver.action.drag_and_drop_by(pane_resize_handle, 0, -20).perform
+      }
+    end
+   
+    it "can reorder while editing another item and not lose the order" do
+      parent = $driver.find_element(:xpath, "//div[@id='archives_tree']//li[a/@title='December']")
+      source = $driver.find_element_with_text("//div[@id='archives_tree']//a", /Nog/)
+      
+      parent.find_element_with_text(".//a", /Tree decorations/).click
+      $driver.clear_and_send_keys([:id, "archival_object_title_"], "XMAS Tree decorations")
+     
+      # now do a drag and drop
+      $driver.action.drag_and_drop(source, parent ).perform
+      # save the item
+      $driver.click_and_wait_until_gone(:css, "form#archival_object_form button[type='submit']")
+      
+      parent = $driver.find_element(:xpath, "//div[@id='archives_tree']//li[a/@title='December']")
+      [ "Christmas albums", "Nog", "XMAS Tree decorations" ].each do |term|
+        parent.find_element_with_text(".//a", /#{term}/)
+      end
+    end
+      
+      
+    it "can not reorder if logged in as a read only user" do
+
+      $driver.find_element(:link, 'Close Record').click
+      url = $driver.current_url
+      
+      logout
+      login_as_viewer
+      
+      $driver.get(url)
+    
+      parent = $driver.find_element(:xpath, "//div[@id='archives_tree']//li[a/@title='December']")
+      source = $driver.find_element_with_text("//div[@id='archives_tree']//a", /XMAS Tree decorations/)
+      
+      children = $driver.blocking_find_elements(:css => "span.tree-node-text").map{|span| span.text.strip}
+      
+      # now do a drag and drop
+      $driver.action.drag_and_drop(source, parent ).perform
+
+		# there should be no change...      
+      rechildren = $driver.blocking_find_elements(:css => "span.tree-node-text").map{|span| span.text.strip}
+		
+	  children.should eq(rechildren)
+
+	   logout
+	   login_as_archivist
+	   
+	
+	   
+    end
+
+
     it "exports and downloads the resource to xml" do
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Resources").click
+      $driver.find_element_with_text('//tr', resource_regex).find_element(:link, 'Edit').click
+    
       system("rm #{File.join(Dir.tmpdir, '*_ead.xml')}")
-      $driver.find_element_with_text("//div[@id='archives_tree']//a", /Pony Express/).click
+
       $driver.find_element(:link, "Export").click
       response = $driver.find_element(:link, "Download EAD").click
       $driver.wait_for_ajax
@@ -1796,6 +1892,7 @@ describe "ArchivesSpace user interface" do
 
 
     it "shows our newly added Resource in the browse list" do
+      run_index_round
       $driver.find_element(:link, "Browse").click
       $driver.find_element(:link, "Resources").click
 
@@ -1853,6 +1950,8 @@ describe "ArchivesSpace user interface" do
       
       logout
       login("admin", "admin")
+      @target_repo_name = "target_#{Time.now.to_i}"      
+      @target_repo_code, @target_repo_uri = create_test_repo(@target_repo_name, @target_repo_name, true)
       
       select_repo($test_repo) 
       $driver.find_element(:link, "Browse").click
@@ -1860,14 +1959,14 @@ describe "ArchivesSpace user interface" do
       $driver.find_element_with_text('//tr', resource_regex).find_element(:link, 'Edit').click
       
       $driver.find_element(:link, "Transfer").click
-      $driver.find_element(:id, "transfer_ref_").select_option_with_text('target')
+      $driver.find_element(:id, "transfer_ref_").select_option_with_text(@target_repo_name)
       $driver.find_element(:css => ".transfer-button").click
       $driver.find_element(:css, "#confirmButton").click
       $driver.find_element_with_text('//div[contains(@class, "alert-success")]', /Transfer Successful/)
       
       run_all_indexers
 
-      select_repo('target') 
+      select_repo(@target_repo_code) 
       
       $driver.find_element(:link, "Browse").click
       $driver.find_element(:link, "Resources").click
@@ -1903,10 +2002,53 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:css => "form .record-pane button[type='submit']").click
       assert(5) { $driver.find_element(:css, "h2").text.should eq("save this please Archival Object") }
       assert(5) { $driver.find_element(:css => "div.alert.alert-success").text.should eq('Archival Object save this please updated') }
+      
+      target = $driver.find_element_with_text("//div[@id='archives_tree']//li", /Pony Express/)
+      target.find_element_with_text(".//a", /save this please/).click
+      
+      $driver.find_element(:link, "Add Child").click
 
-    
+      $driver.clear_and_send_keys([:id, "archival_object_title_"], "Baby AO")
+      $driver.find_element(:id, "archival_object_level_").select_option("item")
+      $driver.find_element(:css => "form .record-pane button[type='submit']").click
+        
+      assert(5){
+       $driver.find_element_with_text("//div[@id='archives_tree']//li//span", /Baby AO/)
+      } 
     end
-  
+ 
+    it "can merge a resource into a resource" do
+      logout
+      login("admin", "admin")
+      
+      select_repo($test_repo) 
+      
+      [ "Thing1", "Thing2"].each do |title| 
+        create_resource( :title => title  )
+      end
+      run_index_round
+
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Resources").click
+      $driver.find_element_with_text('//tr', /Thing1/).find_element(:link, 'Edit').click
+
+      $driver.find_element(:link, "Merge").click
+      
+      $driver.clear_and_send_keys([:id, "token-input-merge_ref_"], "Thing2" )
+      $driver.find_element(:css, "li.token-input-dropdown-item2").click
+      
+      $driver.find_element(:css, "button.merge-button").click
+      
+      $driver.wait_for_ajax
+
+      $driver.find_element_with_text("//h3", /Merge into this record\?/)
+      $driver.find_element(:css, "button#confirmButton").click
+      $driver.find_element_with_text('//div[contains(@class, "alert-success")]', /Resource\(s\) Merged/)
+
+
+    end
+
+
   
   end
 
@@ -1932,6 +2074,9 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:id, "resource_level_").select_option("collection")
       $driver.clear_and_send_keys([:id, "resource_extents__0__number_"], "10")
       $driver.find_element(:id => "resource_extents__0__extent_type_").select_option("files")
+      
+      $driver.find_element(:id => "resource_dates__0__date_type_").select_option("single")
+      $driver.clear_and_send_keys([:id, "resource_dates__0__begin_"], "1978")
 
       add_note = proc do |type|
         $driver.find_element(:css => '#notes .subrecord-form-heading .btn:not(.show-all)').click
@@ -2104,6 +2249,9 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:id, "resource_level_").select_option("collection")
       $driver.clear_and_send_keys([:id, "resource_extents__0__number_"], "10")
       $driver.find_element(:id => "resource_extents__0__extent_type_").select_option("files")
+      
+      $driver.find_element(:id => "resource_dates__0__date_type_").select_option("single")
+      $driver.clear_and_send_keys([:id, "resource_dates__0__begin_"], "1978")
 
       $driver.find_element(:css => "form#resource_form button[type='submit']").click
 
@@ -2305,6 +2453,41 @@ describe "ArchivesSpace user interface" do
 
     it "applies i18n to the show view" do
       $driver.find_element_with_text("//div", /Mixed Materials/) # not mixed_materials
+    end
+    
+    it "can merge a DO into a DO" do
+      logout
+      login("admin", "admin")
+      
+      select_repo($test_repo) 
+      
+      [ "Thing1", "Thing2"].each do |title| 
+        create_digital_object( :title => title  )
+      end
+      run_index_round
+
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Digital Objects").click
+      
+      $driver.clear_and_send_keys([:css, ".span3 .input-append input"], "Thing*" )
+      $driver.find_element(:css, ".span3 .icon-search").click 
+
+      $driver.find_element_with_text('//tr', /Thing1/).find_element(:link, 'Edit').click
+
+      $driver.find_element(:link, "Merge").click
+      
+      $driver.clear_and_send_keys([:id, "token-input-merge_ref_"], "Thing2" )
+      $driver.find_element(:css, "li.token-input-dropdown-item2").click
+      
+      $driver.find_element(:css, "button.merge-button").click
+      
+      $driver.wait_for_ajax
+
+      $driver.find_element_with_text("//h3", /Merge into this record\?/)
+      $driver.find_element(:css, "button#confirmButton").click
+      $driver.find_element_with_text('//div[contains(@class, "alert-success")]', /Digital object\(s\) Merged/)
+
+
     end
 
   end
@@ -2568,7 +2751,8 @@ describe "ArchivesSpace user interface" do
         if default_btn[0]
           default_btn[0].click
           # Keep looping until the 'Set as Default' button is gone
-          sleep 0.1
+          $driver.wait_for_ajax 
+          sleep 3 
         else
           break
         end
@@ -2776,6 +2960,7 @@ describe "ArchivesSpace user interface" do
 
       @modal.find_element(:id, "archival_record_children_children__0__level_").select_option("fonds")
       @modal.find_element(:id, "archival_record_children_children__0__dates__0__date_type_").select_option("single")
+      @modal.find_element(:id, "archival_record_children_children__0__publish_").click
       $driver.clear_and_send_keys([:id, "archival_record_children_children__0__dates__0__begin_"], "2013")
       $driver.clear_and_send_keys([:id, "archival_record_children_children__0__title_"], "Child 1")
 
@@ -2784,6 +2969,7 @@ describe "ArchivesSpace user interface" do
       @modal.find_element(:css, ".btn.add-row").click
       @modal.find_element(:id, "archival_record_children_children__1__level_").get_select_value.should eq("fonds")
       @modal.find_element(:id, "archival_record_children_children__1__dates__0__date_type_").get_select_value.should eq("single")
+      @modal.find_element(:id, "archival_record_children_children__1__publish_" ).attribute("checked").should be_true
       @modal.find_element(:id, "archival_record_children_children__1__dates__0__begin_").attribute("value").should eq("2013")
       @modal.find_element(:id, "archival_record_children_children__1__title_").attribute("value").should eq("Child 1")
 
@@ -2803,6 +2989,7 @@ describe "ArchivesSpace user interface" do
       @modal = $driver.find_element(:id => "rapidDataEntryModal")
 
       @modal.find_element(:id, "archival_record_children_children__0__level_").select_option("fonds")
+      @modal.find_element(:id, "archival_record_children_children__0__publish_").click
 
       @modal.find_element(:css, ".btn.add-rows-dropdown").click
       #7.times { @modal.find_element(:css, ".add-rows-form input").send_keys(:arrow_up) } 
@@ -2833,6 +3020,11 @@ describe "ArchivesSpace user interface" do
       @modal.find_element(:id, "archival_record_children_children__7__level_").get_select_value.should eq("fonds")
       @modal.find_element(:id, "archival_record_children_children__8__level_").get_select_value.should eq("fonds")
       @modal.find_element(:id, "archival_record_children_children__9__level_").get_select_value.should eq("fonds")
+      
+      (1..9).each do |id|
+        @modal.find_element(:id, "archival_record_children_children__#{id}__publish_" ).attribute("checked").should be_true
+      end
+    
     end
 
     it "can perform a basic fill" do
@@ -3428,6 +3620,9 @@ describe "ArchivesSpace user interface" do
       $driver.find_element(:id, "resource_level_").select_option("collection")
       $driver.clear_and_send_keys([:id, "resource_extents__0__number_"], "10")
       $driver.find_element(:id => "resource_extents__0__extent_type_").select_option("files")
+      
+      $driver.find_element(:id => "resource_dates__0__date_type_").select_option("single")
+      $driver.clear_and_send_keys([:id, "resource_dates__0__begin_"], "1978")
 
       # Now add a classification
       $driver.find_element(:css => '#resource_classification_ .subrecord-form-heading .btn:not(.show-all)').click
@@ -3769,5 +3964,120 @@ describe "ArchivesSpace user interface" do
     end
 
   end
+
+
+  describe "Collection Management" do
+
+    before(:all) do
+      new_repo_code = "collection_management_test_#{Time.now.to_i}_#{$$}"
+      new_repo_name = "collection_managment test repository - #{Time.now}"
+      (moo, repo_uri) = create_test_repo(new_repo_code, new_repo_name)
+      (archivist, pass) = create_user
+      add_user_to_archivists(archivist, repo_uri)
+
+
+      login(archivist, pass)
+      select_repo(new_repo_code)
+    end
+
+    after(:all) do
+      logout
+    end
+
+    it "should be fine with no records" do
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Collection Management").click
+      assert(5) { $driver.find_element(:css => ".alert.alert-info").text.should eq("No records found") }  
+    end
+    
+    
+    it "is browseable even when its linked accession has no title" do
+      # first create the title-less accession
+      $driver.find_element(:link, "Create").click
+      $driver.find_element(:link, "Accession").click
+      fourid = $driver.generate_4part_id
+      $stderr.puts(fourid)
+      $driver.complete_4part_id("accession_id_%d_", fourid)
+#      $driver.click_and_wait_until_gone(:css => "form#accession_form button[type='submit']")
+
+      # add a collection management sub record
+      $driver.find_element(:css => '#accession_collection_management_ .subrecord-form-heading .btn:not(.show-all)').click
+
+      $driver.clear_and_send_keys([:id => "accession_collection_management__cataloged_note_"], ["yikes, my accession has no title", :return])
+      $driver.find_element(:id => "accession_collection_management__processing_status_").select_option("completed")
+
+      # save changes
+      $driver.click_and_wait_until_gone(:css => "form#accession_form button[type='submit']")
+     
+      run_all_indexers
+      # check the CM page
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Collection Management").click
+     
+    
+      expect {
+        $driver.find_element_with_text('//td', /#{fourid}/ )
+      }.to_not raise_error     
+      
+      $driver.click_and_wait_until_gone(:link, 'View')
+      $driver.click_and_wait_until_gone(:link, 'Edit')
+     
+      # now delete it
+      $driver.find_element(:css => '#accession_collection_management_ .subrecord-form-remove').click
+      $driver.find_element(:css => '#accession_collection_management_ .confirm-removal').click 
+      $driver.click_and_wait_until_gone(:css => "form#accession_form button[type='submit']")
+    
+      run_all_indexers
+
+      $driver.find_element(:link, "Browse").click
+      $driver.find_element(:link, "Collection Management").click
+      
+      $driver.find_element_with_text('//td', /#{fourid}/, true, true).should eq(nil)
+      
+
+    end
+
+  end
+
+  describe "System Information" do
+
+
+    
+    after(:each) do
+      logout
+    end
+
+    it "should not let any old fool see this" do
+      @perm_test_repo = "perm_test#{Time.now.to_i}_#{$$}"
+      (moo, @repo_uri) = create_test_repo(@perm_test_repo, "The name of the #{@perm_test_repo}")
+      (@archivist, @pass) = create_user
+      add_user_to_archivists(@archivist, @repo_uri)
+      
+      login(@archivist, @pass)
+      
+      $driver.find_element(:link, "System").click
+      $driver.find_elements(:link, "System Information").length.should eq(0)
+      $driver.get(URI.join($frontend, "/system_info"))
+      assert(5) { 
+        $driver.find_element(:css => ".alert.alert-error h2").text.should eq("Unable to Access Page")
+      } 
+   
+    end
+    
+    it "should let the admin see this" do
+      login_as_admin
+      
+      $driver.find_element(:link, "System").click
+      $driver.find_element(:link, "System Information").click
+      assert(5) { 
+        $driver.find_element(:css => "h3.subrecord-form-heading").text.should eq("Frontend System Information")
+      } 
+       
+    
+    end
+    
+
+  end
+
 
 end
