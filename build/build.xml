@@ -91,7 +91,7 @@
       <env key="GEM_PATH" value="" />
       <env key="BUNDLE_PATH" value="${gem_home}" />
       <env key="HOME" value="${build.home}" />
-      <arg line="--1.9 -S gem install bundler" />
+      <arg line="--1.9 -S gem install bundler -v 1.7.12" />
     </java>
 
     <antcall target="bundler"><param name="gemfile" value="../backend/Gemfile" /></antcall>
@@ -501,25 +501,8 @@
     <mkdir dir="target/archivesspace/launcher" />
     <mkdir dir="target/archivesspace/scripts/rb" />
     <mkdir dir="target/archivesspace/stylesheets" />
-<<<<<<< HEAD
     <mkdir dir="target/archivesspace/plugins" />
-=======
-    <mkdir dir="target/archivesspace/plugins/aspace_feedback" />
-    <mkdir dir="target/archivesspace/plugins/aspace-public-formats" />
-    <mkdir dir="target/archivesspace/plugins/cat_in_a_box" />
-    <mkdir dir="target/archivesspace/plugins/newrelic" />
-    <mkdir dir="target/archivesspace/plugins/refid_rules" />
-    <mkdir dir="target/archivesspace/plugins/lcnaf" />
-    <mkdir dir="target/archivesspace/plugins/local/indexer" />
-    <mkdir dir="target/archivesspace/plugins/local/schemas" />
-    <mkdir dir="target/archivesspace/plugins/local/backend/model/mixins" />
-    <mkdir dir="target/archivesspace/plugins/local/backend/model/reports" />
-    <mkdir dir="target/archivesspace/plugins/local/backend/controllers" />
-    <mkdir dir="target/archivesspace/plugins/local/frontend/views" />
-    <mkdir dir="target/archivesspace/plugins/local/frontend/locales" />
-    <mkdir dir="target/archivesspace/plugins/local/public/views" />
-    <mkdir dir="target/archivesspace/plugins/local/public/locales" />
->>>>>>> v1.1.2
+
     <mkdir dir="target/archivesspace/locales" />
 
     <tstamp />
