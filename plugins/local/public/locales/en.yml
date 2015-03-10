@@ -1,6 +1,8 @@
 en:
   brand:
-    title: University of Edinburgh Archives Online
+    title: University of Edinburgh Archives
     home: Home
-    welcome_message: Welcome to the University of Edinburgh Archives.
-    welcome_search_label: "Find what you're looking for:"
+    welcome_message: University of Edinburgh Archives
+    welcome_search_label: "Archive and Manuscript collections contain documentary evidence for understanding a wide range
+    of people, places, knowledge and learning. They contain a strong focus on Scottish culture and detail pioneering research,
+    and literary, scientific and medical work through the University's own archive and Lothian Health Services Archive."

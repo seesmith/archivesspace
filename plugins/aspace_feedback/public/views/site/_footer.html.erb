@@ -1,0 +1,27 @@
+<link href="<%= "#{AppConfig[:public_prefix]}assets/crc_consultation.css" %>" media="all" rel="stylesheet" type="text/css">
+
+<div class="container footer">
+    <div class="row-fluid">
+        <div class="span12">
+            <p>  <a href="http://www.ed.ac.uk/about/website/privacy" title="Privacy and Cookies Link"  target="_blank">Privacy &amp; Cookies</a>
+                | <a href="./takedown" title="Takedown Policy Link">Takedown Policy</a>
+                | <a href="./licensing" title="Licensing and Copyright Link">Licensing &amp; Copyright</a>
+                | <a href="http://www.ed.ac.uk/about/website/accessibility" title="Website Accessibility Link" target="_blank">Accessibility</a>
+
+                | <a id="crcConsultationLink" href="javascript:void(0);">Arrange Consultation</a >
+                | <a href="http://archivesspace.org">ArchivesSpace</a> Version: <%= ASConstants.VERSION %>
+                <% if AppConfig[:enable_frontend] and not proxy_localhost? %> | View <a href="<%= AppConfig[:frontend_proxy_url] %>">Staff Interface</a> |
+                <% end %>
+
+            </p>
+                  <p>Unless explicitly stated otherwise, all material is copyright &copy; <%= Time.now.year %>
+                      <a href="http://www.ed.ac.uk" title="University of Edinburgh Home" target="_blank">University of Edinburgh</a>.</p>
+          </div>
+    </div>
+</div>
+
+<div id="template_consultation_form"><!--
+  <%= render_aspace_partial :partial => "site/consultation_form" %>
+--></div>
+
+<script src="<%= "#{AppConfig[:frontend_prefix]}assets/aspace_feedback.js" %>"></script>
