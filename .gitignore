@@ -30,7 +30,7 @@ common/ARCHIVESSPACE_VERSION
 API.md
 config/gemnasium.yml
 build/demo_db_backups
-archivesspace.iml
+uoe-archivesspace.iml
 *.jasper
 .bundle
 common/config/config-defaults-ck.rb
