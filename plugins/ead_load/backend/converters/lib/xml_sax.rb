@@ -58,9 +58,9 @@ module ASpaceImport
 
 
       def run
-
-        @converter_ticker = String.new('Start of Conversion : \n')
-        @reader = Nokogiri::XML::Reader(IO.read(@input_file))
+        @reader = Nokogiri::XML::Reader( IO.read(@input_file).gsub(/\s\s+/, " ")) do |config|
+          config.noblanks.strict
+        end
         node_queue = node_queue_for(@reader)
         @contexts = []
         @context_nodes = {}
@@ -74,11 +74,7 @@ module ASpaceImport
 
         @reader.each_with_index do |node, i|
 
-          @converter_ticker += node.local_name + "\n"
-
-
           case node.node_type
-
 
           when 1
              
@@ -106,12 +102,7 @@ module ASpaceImport
           # A gross hack.  Use Java Reflection to clear Nokogiri's node queue,
           # since otherwise we end up accumulating all nodes in memory.
           node_queue.set(i, nil)
-
         end
-        rescue Exception => e
-          Log.error(e)
-          @converter_ticker += "ERROR :" + e + "\n"
-          return @converter_ticker
       end
 
 
@@ -136,9 +127,7 @@ module ASpaceImport
         @node_shadow = [node.local_name, node.depth]
         
         @node = node
-        @empty_node = empty_node
-
-        Log.info('!!! opener node ' + @node_name)
+        @empty_node = empty_node 
 
 
         # constrained handlers, e.g. publication/date
@@ -165,8 +154,6 @@ module ASpaceImport
         @node_shadow = nil
         @empty_node = false
         node_info = node.is_a?(Array) ? node : [node.local_name, node.depth]
-
-        Log.info('**** closer node ' + node.local_name)
         if @context_nodes[node_info[0]] && @context_nodes[node_info[0]][node_info[1]]
           @context_nodes[node_info[0]][node_info[1]].reverse.each do |type|
             close_context(type)

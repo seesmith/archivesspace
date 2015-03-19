@@ -1,5 +1,5 @@
 AppConfig[:default_admin_password] = "admin"
-AppConfig[:data_directory] = File.join(Dir.home, "ArchivesSpace")
+AppConfig[:data_directory] = File.join(Dir.home, "archivesspace-data")
 AppConfig[:backup_directory] = proc { File.join(AppConfig[:data_directory], "demo_db_backups") }
 AppConfig[:solr_index_directory] = proc { File.join(AppConfig[:data_directory], "solr_index") }
 AppConfig[:solr_home_directory] = proc { File.join(AppConfig[:data_directory], "solr_home") }
@@ -28,7 +28,7 @@ AppConfig[:indexer_thread_count] = 4
 
 AppConfig[:allow_other_unmapped] = false
 
-AppConfig[:db_url] = proc { AppConfig.demo_db_url }
+AppConfig[:db_url] = "jdbc:mysql://localhost:3306/archivesspace?user=as&password=falkirk"
 AppConfig[:db_max_connections] = 10
 # Set to true if you have enabled MySQL binary logging
 AppConfig[:mysql_binlog] = false
@@ -84,8 +84,8 @@ AppConfig[:jetty_shutdown_path] = "/xkcd"
 #
 AppConfig[:backend_instance_urls] = proc { [AppConfig[:backend_url]] }
 
-AppConfig[:frontend_theme] = "default"
-AppConfig[:public_theme] = "default"
+AppConfig[:frontend_theme] = "uoe"
+AppConfig[:public_theme] = "uoe"
 
 AppConfig[:session_expire_after_seconds] = 3600
 
@@ -116,7 +116,7 @@ AppConfig[:report_pdf_font_paths] = proc { ["#{AppConfig[:backend_url]}/reports/
 AppConfig[:report_pdf_font_family] = "\"DejaVu Sans\", sans-serif"
 
 # Plug-ins to load. They will load in the order specified
-AppConfig[:plugins] = ['local', 'aspace_feedback', 'aspace-public-formats']
+AppConfig[:plugins] = ['local', 'aspace_feedback', 'aspace-public-formats', 'lcnaf','ead_load']
 
 
 # 
