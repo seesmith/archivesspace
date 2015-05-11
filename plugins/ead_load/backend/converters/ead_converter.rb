@@ -621,6 +621,7 @@ class EADConverter < Converter
       'subject' => 'topical'
       }.each do |tag, type|
         with "controlaccess/#{tag}" do
+          Log.info('SUBJECT ' + inner_xml  + 'type ' + type)
           make :subject, {
             :terms => {'term' => inner_xml, 'term_type' => type, 'vocabulary' => '/vocabularies/1'},
             :vocabulary => '/vocabularies/1',
@@ -791,9 +792,9 @@ class EADConverter < Converter
     Log.info('IMPORT PERSON ' + @primary_name)
 
     if inner_xml.include? '|'
-      Log.info('PIPES primary_name ' + @primary_name )
+      Log.debug('PIPES primary_name ' + @primary_name )
       @all_name = inner_xml.split('|')
-      Log.info('array length ' + @all_name.length.to_s)
+      Log.debug('array length ' + @all_name.length.to_s)
       @primary_name = @all_name[0]
       @rest_of_name = @all_name[1]
       @title = @all_name[2]
