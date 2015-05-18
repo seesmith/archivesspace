@@ -9,7 +9,10 @@
                 | <a href="http://www.ed.ac.uk/about/website/accessibility" title="Website Accessibility Link" target="_blank">Accessibility</a>
 
                 | <a id="crcConsultationLink" href="javascript:void(0);">Arrange Consultation</a >
-                | <a href="http://archivesspace.org">ArchivesSpace</a> Version: <%= ASConstants.VERSION %>
+                | <a href="http://www.ed.ac.uk/schools-departments/information-services/library-museum-gallery/crc" target="_blank">Centre for Research Collections</a>
+                | <a href="http://www.lhsa.lib.ed.ac.uk/" target="_blank">Lothian Health Services</a>
+            </p>
+            <p> <a href="http://archivesspace.org" target="_blank">ArchivesSpace</a> Version: <%= ASConstants.VERSION %>
                 <% if AppConfig[:enable_frontend] and not proxy_localhost? %> | View <a href="<%= AppConfig[:frontend_proxy_url] %>">Staff Interface</a> |
                 <% end %>
 

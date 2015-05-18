@@ -1,5 +1,27 @@
 @baseFontSize: 13px;
 
+@linkColorHover:        #004f71;
+@linkColor:             lighten(@linkColorHover, 20%);
+
+@btnPrimaryBackground:              @linkColor;
+@btnPrimaryBackgroundHighlight:     spin(@btnPrimaryBackground, 20%);
+
+@dropdownLinkBackgroundActive:  @linkColor;
+@dropdownLinkBackgroundHover:   @dropdownLinkBackgroundActive;
+
+// Accent colors
+// -------------------------
+@blue:                          #004f71;
+@blueDark:                      darken(@blue, 30%);;
+
+@btnInfoBackground:                 #004f71;
+@btnInfoBackgroundHighlight:        #c6d6e3;
+
+
+@infoText:                #004f71;
+@infoBackground:          #c6d6e3;
+@infoBorder:              darken(spin(@infoBackground, -10), 7%);
+
 body {
   background: #FFFFFF;
 }
@@ -7,6 +29,29 @@ body {
 header h1 {
   padding: 20px 0;
 }
+
+h1, h2, h3 {
+  line-height: 30px;
+
+}
+
+h2 {
+  font-size: 20px;
+}
+
+h3 {
+  font-size: 17px;
+}
+
+h4 {
+  font-size: 13px;
+}
+
+.results-list .result h3 {
+  font-size: 13px;
+}
+
+
 
 .navbar .navbar-inner {
   .border-radius(4px 4px 0 0);
@@ -62,7 +107,7 @@ header h1 {
 }
 
 .footer a {
-  color: #08c;
+  color: lighten(@linkColorHover, 20%);
   text-shadow: 1px 1px 2px white;
 }
 
