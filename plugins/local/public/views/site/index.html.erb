@@ -8,9 +8,6 @@
         <div class="span8">
 
             <h3><%= I18n.t("brand.welcome_message") %></h3>
-            <p><%= I18n.t("brand.welcome_search_label") %></p>
-            <p><%= I18n.t("brand.welcome_search_label1") %></p>
-            <p><%= I18n.t("brand.welcome_search_label2") %></p>
 
             <div class="tab-content">
                 <div id="simpleSearch" class="tab-pane active">
@@ -30,9 +27,28 @@
                 </li>
             </ul>
 
+            <p><%= I18n.t("brand.welcome_search_label") %></p>
+            <p><%= I18n.t("brand.welcome_search_label1") %></p>
+            <p><%= I18n.t("brand.welcome_search_label2") %></p>
+
+
         </div>
         <div class="span4">
-
+            <div id="myCarousel" class="carousel slide">
+                <!-- Carousel items -->
+                <div class="carousel-inner">
+                    <div class="active item"><%= image_tag "/assets/uoe/0001361d.jpg", :alt => "University of Edinburgh" %></div>
+                    <div class="item"><%= image_tag "/assets/uoe/0041817c.jpg", :alt => "University of Edinburgh" %></div>
+                    <div class="item"><%= image_tag "/assets/uoe/LHSA.jpg", :alt => "University of Edinburgh" %></div>
+                    <div class="item"><%= image_tag "/assets/uoe/0004151d.jpg", :alt => "University of Edinburgh" %></div>
+                    <div class="item"><%= image_tag "/assets/uoe/0011246d.jpg", :alt => "University of Edinburgh" %></div>
+                    <div class="item"><%= image_tag "/assets/uoe/0053403c.jpg", :alt => "University of Edinburgh" %></div>
+                    <div class="item"><%= image_tag "/assets/uoe/0001959d.jpg", :alt => "University of Edinburgh" %></div>
+                 </div>
+                <!-- Carousel nav -->
+                <a class="carousel-control left" href="#myCarousel" data-slide="prev">‹</a>
+                <a class="carousel-control right" href="#myCarousel" data-slide="next">›</a>
+            </div>
         </div>
     </div>
 </div>
