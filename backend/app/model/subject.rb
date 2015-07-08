@@ -32,16 +32,16 @@ class Subject < Sequel::Model(:subject)
                     :contains_records_of_type => :term,
                     :corresponding_to_association  => :term)
 
-  auto_generate :property => :title, 
+  auto_generate :property => :title,
                 :generator => proc  { |json|
-                                json["terms"].map do |t|
-                                  if t.kind_of? String
-                                    Term[JSONModel(:term).id_for(t)].term
-                                  else
-                                    t["term"]
-                                  end
-                                end.join(" -- ")
-                              }
+                  json["terms"].map do |t|
+                    if t.kind_of? String
+                      Term[JSONModel(:term).id_for(t)].term
+                    else
+                      t["term"]
+                    end
+                  end.join(" -- ")
+                }
 
 
   def self.set_vocabulary(json, opts)
@@ -54,33 +54,57 @@ class Subject < Sequel::Model(:subject)
 
 
   def self.generate_terms_sha1(json)
+    Log.info(' SHA1 generate ' + json.terms.map {|term| [term['term'], term['term_type']]}.inspect)
     return nil if json.terms.empty?
-
     Digest::SHA1.hexdigest(json.terms.map {|term| [term['term'], term['term_type']]}.inspect)
   end
 
 
   def self.create_from_json(json, opts = {})
     set_vocabulary(json, opts)
+    Log.info(' SHA1 create ' + generate_terms_sha1(json).to_s)
     super(json, opts.merge(:terms_sha1 => generate_terms_sha1(json)))
   end
 
 
   def self.ensure_exists(json, referrer)
     DB.attempt {
+      Log.info("CREATE FROM JSON" );
       self.create_from_json(json)
     }.and_if_constraint_fails {|exception|
+      Log.info("CONSTRAINT FAILS" );
       source_id = BackendEnumSource.id_for_value("subject_source", json.source)
 
       subject = Subject.find(:vocab_id => JSONModel(:vocabulary).id_for(json.vocabulary),
                              :terms_sha1 => generate_terms_sha1(json),
                              :source_id => source_id)
 
+      Log.info(' SHA1 exists ? ' + generate_terms_sha1(json).to_s)
+
+      #todo can a subject just be matched up as the authority_id matches?
+      if !subject
+        Log.info("FIND : " );
+        Log.info(json )
+        Log.info(" END JSON " );
+        subject = Subject.find(:vocab_id => JSONModel(:vocabulary).id_for(json.vocabulary),
+                               :authority_id => json.authority_id,
+                               :source_id => source_id)
+
+        if (subject)
+          Log.info('found subject match')
+        end
+
+      end
+
+
       if !subject
         # The subject exists but we can't find it.  This could mean it was
         # created in a currently running transaction.  Abort this one to trigger
         # a retry.
-        Log.info("Subject '#{json.terms}' seems to have been created by a currently running transaction.  Restarting this one.")
+        # Log.info('Can not find subject ')
+        # Log.info(' SHA1 ' + generate_terms_sha1(json).to_s)
+        # Log.info(' source ' + json.source)
+        Log.info("Subject '#{json.terms}' seems to have been created by a currently running transaction.  Restarting this one. ")
         sleep 5
         raise RetryTransaction.new
       end
@@ -118,11 +142,13 @@ class Subject < Sequel::Model(:subject)
   def validate
     super
 
+    Log.info('in validate unique')
     if self[:source_id]
       validates_unique([:vocab_id, :source_id, :terms_sha1], :message => "Subject must be unique")
     else
       validates_unique([:vocab_id, :terms_sha1], :message => "Subject must be unique")
     end
+    #todo does terms_sha1 need to be included below?
 
     validates_unique([:vocab_id, :source_id, :authority_id], :message => "Subject heading identifier must be unique within source")
     map_validation_to_json_property([:vocab_id, :source_id, :authority_id], :authority_id)
