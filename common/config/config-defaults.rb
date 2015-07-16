@@ -9,7 +9,7 @@ AppConfig[:default_page_size] = 10
 AppConfig[:max_page_size] = 250
 
 # Log level for the backend, values: (everything) debug, info, warn, error, fatal (severe only)
-AppConfig[:backend_log_level] = "warn"
+AppConfig[:backend_log_level] = "info"
 
 # A prefix added to cookies used by the application.
 #
@@ -116,7 +116,7 @@ AppConfig[:report_pdf_font_paths] = proc { ["#{AppConfig[:backend_url]}/reports/
 AppConfig[:report_pdf_font_family] = "\"DejaVu Sans\", sans-serif"
 
 # Plug-ins to load. They will load in the order specified
-AppConfig[:plugins] = ['assets_reroute','local', 'aspace_feedback', 'aspace-public-formats', 'lcnaf','ead_load']
+AppConfig[:plugins] = ['local', 'assets_reroute', 'aspace_feedback', 'aspace-public-formats', 'lcnaf','ead_load']
 
 
 # 

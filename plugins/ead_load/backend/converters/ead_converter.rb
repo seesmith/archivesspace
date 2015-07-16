@@ -788,12 +788,12 @@ class EADConverter < Converter
     @dates  = ''
     @qualifier = ''
 
-    #Log.info('IMPORT PERSON ' + @primary_name)
+    Log.info('IMPORT PERSON ' + @primary_name)
 
     if inner_xml.include? '|'
-      #Log.info('PIPES primary_name ' + @primary_name )
+      Log.info('PIPES primary_name ' + @primary_name )
       @all_name = inner_xml.split('|')
-      #Log.info('array length ' + @all_name.length.to_s)
+      Log.info('array length ' + @all_name.length.to_s)
       @primary_name = @all_name[0]
       @rest_of_name = @all_name[1]
       @title = @all_name[2]
@@ -802,7 +802,7 @@ class EADConverter < Converter
         @qualifier = @all_name[4]
       end
     else
-     # Log.info('IMPORT PERSON in else')
+      Log.info('IMPORT PERSON in else')
     end
 
 
