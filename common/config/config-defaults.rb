@@ -28,7 +28,7 @@ AppConfig[:indexer_thread_count] = 4
 
 AppConfig[:allow_other_unmapped] = false
 
-AppConfig[:db_url] = "jdbc:mysql://localhost:3306/archivesspace?user=as&password=falkirk"
+AppConfig[:db_url] = ""
 AppConfig[:db_max_connections] = 10
 # Set to true if you have enabled MySQL binary logging
 AppConfig[:mysql_binlog] = false
