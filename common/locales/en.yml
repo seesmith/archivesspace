@@ -1893,6 +1893,10 @@ en:
     time_started: Time Started
     time_finished: Time Completed
     owner: Owner
+    import_type: Import Type
+    import_type: Import Type
+    find_and_replace_job: Find and Replace Job
+    print_to_pdf_job: Print to PDF
 
   import_job:
     _singular: Import Job
