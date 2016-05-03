@@ -27,7 +27,7 @@ module ASConstants
       else # some servlet containers have a hard time finding the resource...
         # fallback_version variable gets changed in dist ant task . The a is
         # just a cue that we're using this..
-        fallback_version = "20160222-1324.a"
+        fallback_version = "20160429-1619.a"
         @VERSION = fallback_version 
       end
     rescue
