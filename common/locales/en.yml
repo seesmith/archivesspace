@@ -1884,7 +1884,7 @@ en:
     is_required_unless_a_begin_or_end_date_is_given: is required unless a begin or end date is given
     is_required_unless_an_expression_or_an_end_date_is_given: is required unless an expression or an end date is given
     is_required_unless_an_expression_or_a_begin_date_is_given: is required unless an expression or a begin date is given
-
+    subject_must_be_unique: Subject records cannot be identical
     did_not_match_regular_expression: Did not match regular expression %{regexp}
     too_few_characters: Must be at least %{min_length} characters
     too_many_characters: Must be %{max_length} characters or fewer
@@ -1936,6 +1936,10 @@ en:
     time_started: Time Started
     time_finished: Time Completed
     owner: Owner
+    import_type: Import Type
+    import_type: Import Type
+    find_and_replace_job: Find and Replace Job
+    print_to_pdf_job: Print to PDF
     show_description: Show Description
 
   import_job:

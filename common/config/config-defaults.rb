@@ -1,5 +1,5 @@
 AppConfig[:default_admin_password] = "admin"
-AppConfig[:data_directory] = File.join(Dir.home, "ArchivesSpace")
+AppConfig[:data_directory] = File.join(Dir.home, "archivesspace-data")
 AppConfig[:backup_directory] = proc { File.join(AppConfig[:data_directory], "demo_db_backups") }
 AppConfig[:solr_index_directory] = proc { File.join(AppConfig[:data_directory], "solr_index") }
 AppConfig[:solr_home_directory] = proc { File.join(AppConfig[:data_directory], "solr_home") }
@@ -10,7 +10,7 @@ AppConfig[:default_page_size] = 10
 AppConfig[:max_page_size] = 250
 
 # Log level for the backend, values: (everything) debug, info, warn, error, fatal (severe only)
-AppConfig[:backend_log_level] = "debug"
+AppConfig[:backend_log_level] = "error"
 
 # A prefix added to cookies used by the application.
 #
@@ -30,7 +30,7 @@ AppConfig[:indexer_solr_timeout_seconds] = 300
 
 AppConfig[:allow_other_unmapped] = false
 
-AppConfig[:db_url] = proc { AppConfig.demo_db_url }
+AppConfig[:db_url] =  "jdbc:mysql://localhost:3306/archivesspace?user=xx&password=xx"
 AppConfig[:db_url_redacted] = proc { AppConfig[:db_url].gsub(/(user|password)=(.*?)(&|$)/, '\1=[REDACTED]\3') }
 AppConfig[:db_max_connections] = proc { 20 + (AppConfig[:indexer_thread_count] * 2) }
 
@@ -105,8 +105,8 @@ AppConfig[:jetty_shutdown_path] = "/xkcd"
 #
 AppConfig[:backend_instance_urls] = proc { [AppConfig[:backend_url]] }
 
-AppConfig[:frontend_theme] = "default"
-AppConfig[:public_theme] = "default"
+AppConfig[:frontend_theme] = "uoe"
+AppConfig[:public_theme] = "uoe"
 
 AppConfig[:session_expire_after_seconds] = 3600
 
@@ -137,7 +137,7 @@ AppConfig[:report_pdf_font_paths] = proc { ["#{AppConfig[:backend_url]}/reports/
 AppConfig[:report_pdf_font_family] = "\"DejaVu Sans\", sans-serif"
 
 # Plug-ins to load. They will load in the order specified
-AppConfig[:plugins] = ['local',  'lcnaf', 'aspace-public-formats']
+AppConfig[:plugins] = ['local',  'lcnaf', 'aspace-public-formats', 'aspace_feedback']
 
 # URL to direct the feedback link
 # You can remove this from the footer by making the value blank.
