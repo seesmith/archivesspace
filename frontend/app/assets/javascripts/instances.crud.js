@@ -1,4 +1,6 @@
 //= require subrecord.collapsible.js
+//= require representativemembers.js
+//= require space_calculator.js
 
 $(function() {
 

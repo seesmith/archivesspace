@@ -16,7 +16,6 @@ $(function() {
 
       var selected;
 
-      $this.addClass("initialised");
       var noteTypes = generateNoteTypes($this);  
       var tagList = generateTagWhitelist(noteTypes);
 
@@ -73,6 +72,7 @@ $(function() {
       });
 
       $this.data("CodeMirror", $editor);
+      $this.addClass("initialised");
 
       var onWrapActionChange = function(event) {
         if ($editor.somethingSelected() && $wrapWithActionSelect.val() != "") {
@@ -167,10 +167,10 @@ $(function() {
     $("textarea.mixed-content:not(.initialised)", subform).mixedContent();
   });
 
-  $(document).bind("loadedrecordform.aspace", function(event, $container) {
+  $(document).bind("expandcontainer.aspace", function(event, $container) {
     $("textarea.mixed-content:not(.initialised)", $container).mixedContent();
   });
 
-  $("textarea.mixed-content:not(.initialised)").mixedContent();
+  // $("textarea.mixed-content:not(.initialised)").mixedContent();
 });
 

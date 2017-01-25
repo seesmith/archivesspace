@@ -1,4 +1,5 @@
 .DS_Store
+_site
 build/*.jar
 build/solr_backups/*
 *.war
@@ -6,7 +7,6 @@ build/gems
 derby.log
 frontend/doc
 backend/doc
-doc
 config/config.rb
 *.swp
 *.out
@@ -29,10 +29,14 @@ webdriver-profile*
 common/ARCHIVESSPACE_VERSION
 .yardoc
 API.md
+endpoint_examples*
 config/gemnasium.yml
 build/demo_db_backups
 *.jasper
 .bundle
-frontend/node_modules
+*/node_modules
 locales.diff
-frontend/bower_components
+*/bower_components
+Gemfile.local
+supervisord.*
+mysql-connector*.jar

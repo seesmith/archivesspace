@@ -270,6 +270,11 @@ module ASModel
         break if object_graph.models.length == successfully_deleted_models.length
 
         unless progressed
+          if last_error && DB.is_retriable_exception(last_error)
+            # Give us a chance to retry after a deadlock
+            raise last_error
+          end
+
           raise ConflictException.new("Record deletion failed: #{last_error}")
         end
       end
@@ -358,7 +363,12 @@ module ASModel
       def fire_update(json, sequel_obj)
         if high_priority?
           model = self
+
           uri = sequel_obj.uri
+
+          # We don't index records without URIs, so no point digging them out of the database either.
+          return unless uri
+
           hash = model.to_jsonmodel(sequel_obj.id).to_hash(:trusted)
           DB.after_commit do
             RealtimeIndexing.record_update(hash, uri)
@@ -462,6 +472,12 @@ module ASModel
 
       def sequel_to_jsonmodel(objs, opts = {})
         NestedRecordResolver.new(nested_records, objs).resolve
+      end
+
+      def associations_to_eagerly_load
+        # Allow subclasses to force eager loading of certain associations to
+        # save SQL queries.
+        []
       end
 
 

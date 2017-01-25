@@ -6,6 +6,9 @@ require 'set'
 
 module AgentManager
 
+  AGENT_MUST_BE_UNIQUE = "Agent must be unique"
+  AGENT_MUST_BE_UNIQUE_MYSQL_CONSTRAINT = /Duplicate entry .* for key 'sha1_agent_person'/
+
   @@registered_agents ||= {}
 
   class AuthorizedNameError < Sequel::ValidationFailed; end
@@ -89,7 +92,7 @@ module AgentManager
 
     def validate
       super
-      validates_unique([:agent_sha1], :message => "Agent must be unique")
+      validates_unique([:agent_sha1], :message => AGENT_MUST_BE_UNIQUE)
       map_validation_to_json_property([:agent_sha1], :names)
       map_validation_to_json_property([:agent_sha1], :dates_of_existence)
       map_validation_to_json_property([:agent_sha1], :external_documents)
@@ -174,8 +177,13 @@ module AgentManager
                       .and( Sequel.qualify( name_type.intern, :authorized)  => 1 ).select_all(agent_type.intern).first
                       
 
-          else
+          elsif exception.message.end_with?(AGENT_MUST_BE_UNIQUE) || exception.message =~ AGENT_MUST_BE_UNIQUE_MYSQL_CONSTRAINT
+            # If the agent already exists, find and reuse them
             agent = find_matching(json)
+
+          else
+            # If anything else went wrong, report it
+            raise $!
           end
 
           if !agent
@@ -189,7 +197,6 @@ module AgentManager
 
           
           agent
-        
         }
       end
 

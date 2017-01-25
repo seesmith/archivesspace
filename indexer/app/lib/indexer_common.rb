@@ -2,6 +2,7 @@ require 'net/http'
 require 'uri'
 require 'json'
 require 'fileutils'
+require 'aspace_i18n'
 
 require 'asutils'
 require 'jsonmodel'
@@ -15,7 +16,8 @@ class CommonIndexer
 
   include JSONModel
 
-  @@record_types = [ :archival_object, :resource,
+  @@record_types = [ :top_container,:container_profile, :location_profile,
+                     :archival_object, :resource,
                     :digital_object, :digital_object_component,
                     :subject, :location, :classification, :classification_term,
                     :event, :accession,
@@ -27,9 +29,9 @@ class CommonIndexer
   @@records_with_children = []
   @@init_hooks = []
 
-  @@resolved_attributes = ['subjects', 'linked_agents', 'linked_records', 'classifications', 'digital_object']
+  @@resolved_attributes = ['location_profile', 'container_profile', 'container_locations', 'subjects', 'linked_agents', 'linked_records', 'classifications', 'digital_object']
 
-  @@paused_until = Time.now 
+  @@paused_until = Time.now
 
   def self.add_indexer_initialize_hook(&block)
     @@init_hooks << block
@@ -75,6 +77,42 @@ class CommonIndexer
     end
   end
 
+  def self.generate_permutations_for_identifier(identifer)
+    return [] if identifer.nil?
+
+    [
+      identifer,
+      identifer.gsub(/[[:punct:]]+/, " "),
+      identifer.gsub(/[[:punct:] ]+/, ""),
+      identifer.scan(/([0-9]+|[^0-9]+)/).flatten(1).join(" ")
+    ].uniq
+  end
+
+
+  def self.extract_string_values(doc)
+    text = ""
+    doc.each do |key, val|
+      if %w(json types create_time date_type jsonmodel_type publish extent_type system_generated suppressed source rules name_order).include?(key)
+      elsif key =~ /_enum_s$/
+      elsif val.is_a?(String)
+        text << "#{val} "
+      elsif val.is_a?(Hash)
+        text << self.extract_string_values(val)
+      elsif val.is_a?(Array)
+        val.each do |v|
+          if v.is_a?(String)
+            text << "#{v} "
+          elsif v.is_a?(Hash)
+            text << self.extract_string_values(v)
+          end
+        end
+      end
+    end
+
+    text
+  end
+
+
   def add_agents(doc, record)
     if record['record']['linked_agents']
       # index all linked agents first
@@ -84,6 +122,22 @@ class CommonIndexer
       # index the creators only
       creators = record['record']['linked_agents'].select{|link| link['role'] === 'creator'}
       doc['creators'] = creators.collect{|link| link['_resolved']['display_name']['sort_name']} if not creators.empty?
+
+      # make a special sort field for each agent
+      # creator > subject > source
+      seen = {}
+      record['record']['linked_agents'].each do |link|
+        if seen[link['ref']] == 'creator'
+          # do nothing
+        elsif seen[link['ref']] == 'subject' && link['role'] != 'creator'
+          # do nothing
+        else
+          relator_label = link['relator'] ? I18n.t("enumerations.linked_agent_archival_record_relators.#{link['relator']}") : ''
+
+          doc["#{link['ref'].gsub(/\//, '_')}_relator_sort"] = "#{link['role']} #{relator_label}"
+          seen[link['ref']] = link['role']
+        end
+      end
     end
   end
 
@@ -103,7 +157,7 @@ class CommonIndexer
 
   def add_notes(doc, record)
     if record['record']['notes']
-      doc['notes'] = record['record']['notes'].to_json
+      doc['notes'] = record['record']['notes'].map {|note| CommonIndexer.extract_string_values(note) }.join(" ");
     end
   end
 
@@ -115,9 +169,24 @@ class CommonIndexer
   end
 
 
+  def add_summary(doc, record)
+    if record['record'].has_key?('notes') && record['record']['notes'].is_a?(Array)
+      notes = record['record']['notes']
+      abstract = notes.find {|note| note['type'] == 'abstract'}
+      if abstract
+        doc['summary'] = abstract['content'].join("\n")
+      else
+        scopecontent = notes.find {|note| note['type'] == 'scopecontent'}
+        if scopecontent
+          doc['summary'] = scopecontent['subnotes'].map {|sn| sn['content']}.join("\n")
+        end
+      end
+    end
+  end
+
 
   def configure_doc_rules
-    
+
     add_delete_hook { |records, delete_request|
       records.each do |rec|
         if rec.include?("_collection_management")
@@ -125,23 +194,28 @@ class CommonIndexer
           delete_request[:delete] <<  {"id" => rec}
           delete_request[:delete] <<  {'query' => "parent_id:\"#{rec.split("#").first}\""}
         end
+
+        if rec.match(/repositories\/\d+\/collection_management\//)
+          delete_request[:delete] << {'query' => "cm_uri:\"#{rec}\""}
+        end
       end
      }
 
 
     add_document_prepare_hook { |doc,record|
      ["relator", "type", "role", "source", "rules", "acquisition_type", "resource_type", "processing_priority", "processing_status", "era", "calendar", "digital_object_type", "level", "processing_total_extent_type", "container_extent_type", "extent_type", "event_type", "type_1", "type_2", "type_3", "salutation", "outcome", "finding_aid_description_rules", "finding_aid_status", "instance_type", "use_statement", "checksum_method", "language", "date_type", "label", "certainty", "scope", "portion", "xlink_actuate_attribute", "xlink_show_attribute", "file_format_name", "temporary", "name_order", "country", "jurisdiction", "rights_type", "ip_status", "term_type", "enum_1", "enum_2", "enum_3", "enum_4", "relator_type", "job_type"].each do |field|
-       Array( ASUtils.search_nested(record["record"], field) ).each  { |val| doc["#{field}_enum_s"] ||= [];  doc["#{field}_enum_s"] << val } 
+       Array( ASUtils.search_nested(record["record"], field) ).each  { |val| doc["#{field}_enum_s"] ||= [];  doc["#{field}_enum_s"] << val }
+
      end
-     Array( ASUtils.search_nested(record["record"], "items") ).each  do |val| 
-       begin 
-         next unless val.key?("type") 
-         doc["type_enum_s"] ||= []; 
-         doc["type_enum_s"] << val["type"]    
+     Array( ASUtils.search_nested(record["record"], "items") ).each  do |val|
+       begin
+         next unless val.key?("type")
+         doc["type_enum_s"] ||= [];
+         doc["type_enum_s"] << val["type"]
       rescue
         next
       end
-    end 
+    end
     }
 
     add_document_prepare_hook {|doc, record|
@@ -157,6 +231,7 @@ class CommonIndexer
       add_audit_info(doc, record)
       add_notes(doc, record)
       add_level(doc, record)
+      add_summary(doc, record)
     }
 
     add_document_prepare_hook {|doc, record|
@@ -187,7 +262,6 @@ class CommonIndexer
         doc['repository'] = doc["id"]
         doc['title'] = record['record']['repo_code']
         doc['publish'] = true
-        doc['json'] = record['record'].to_json
       end
     }
 
@@ -212,8 +286,8 @@ class CommonIndexer
 
     add_document_prepare_hook {|doc, record|
       if doc['primary_type'] == 'resource'
-        doc['finding_aid_title'] = record['record']['finding_aid_title'] 
-        doc['finding_aid_filing_title'] = record['record']['finding_aid_filing_title'] 
+        doc['finding_aid_title'] = record['record']['finding_aid_title']
+        doc['finding_aid_filing_title'] = record['record']['finding_aid_filing_title']
         doc['identifier'] = (0...4).map {|i| record['record']["id_#{i}"]}.compact.join("-")
         doc['resource_type'] = record['record']['resource_type']
         doc['level'] = record['record']['level']
@@ -240,9 +314,8 @@ class CommonIndexer
 
     add_document_prepare_hook {|doc, record|
       if doc['primary_type'] == 'event'
-        doc['json'] = record['record'].to_json
         doc['event_type'] = record['record']['event_type']
-        doc['title'] = record['record']['event_type'] # adding this for emedded searches 
+        doc['title'] = record['record']['event_type'] # adding this for emedded searches
         doc['outcome'] = record['record']['outcome']
         doc['linked_record_uris'] = record['record']['linked_records'].map { |c| c['ref'] }
       end
@@ -251,7 +324,6 @@ class CommonIndexer
     add_document_prepare_hook {|doc, record|
       if ['agent_person', 'agent_family', 'agent_software', 'agent_corporate_entity'].include?(doc['primary_type'])
         record['record'].reject! { |rec| rec === 'agent_contacts' }
-        doc['json'] = record['record'].to_json
         doc['title'] = record['record']['display_name']['sort_name']
 
         authorized_name = record['record']['names'].find {|name| name['authorized']}
@@ -319,6 +391,122 @@ class CommonIndexer
     }
 
 
+    add_document_prepare_hook {|doc, record|
+      if record['record']['jsonmodel_type'] == 'top_container'
+        doc['title'] = record['record']['long_display_string']
+        doc['display_string'] = record['record']['display_string']
+
+        if record['record']['series']
+          doc['series_uri_u_sstr'] = record['record']['series'].map {|series| series['ref']}
+          doc['series_title_u_sstr'] = record['record']['series'].map {|series| series['display_string']}
+          doc['series_level_u_sstr'] = record['record']['series'].map {|series| series['level_display_string']}
+          doc['series_identifier_stored_u_sstr'] = record['record']['series'].map {|series| series['identifier']}
+          doc['series_identifier_u_stext'] = record['record']['series'].map {|series|
+            CommonIndexer.generate_permutations_for_identifier(series['identifier'])
+          }.flatten
+        end
+
+        if record['record']['collection']
+          doc['collection_uri_u_sstr'] = record['record']['collection'].map {|collection| collection['ref']}
+          doc['collection_display_string_u_sstr'] = record['record']['collection'].map {|collection| collection['display_string']}
+          doc['collection_identifier_stored_u_sstr'] = record['record']['collection'].map {|collection| collection['identifier']}
+          doc['collection_identifier_u_stext'] = record['record']['collection'].map {|collection|
+            CommonIndexer.generate_permutations_for_identifier(collection['identifier'])
+          }.flatten
+        end
+
+        if record['record']['container_profile']
+          doc['container_profile_uri_u_sstr'] = record['record']['container_profile']['ref']
+          doc['container_profile_display_string_u_sstr'] = record['record']['container_profile']['_resolved']['display_string']
+        end
+
+        if record['record']['container_locations'].length > 0
+          record['record']['container_locations'].each do |container_location|
+            if container_location['status'] == 'current'
+              doc['location_uri_u_sstr'] = container_location['ref']
+              doc['location_uris'] = container_location['ref']
+              doc['location_display_string_u_sstr'] = container_location['_resolved']['title']
+            end
+          end
+        end
+        doc['exported_u_sbool'] = record['record'].has_key?('exported_to_ils')
+        doc['empty_u_sbool'] = record['record']['collection'].empty?
+
+        doc['typeahead_sort_key_u_sort'] = record['record']['indicator'].to_s.rjust(255, '#')
+        doc['barcode_u_sstr'] = record['record']['barcode']
+      end
+    }
+
+
+    add_document_prepare_hook {|doc, record|
+      if ['resource', 'archival_object', 'accession'].include?(doc['primary_type'])
+        # we no longer want the contents of containers to be indexed at the container's location
+        doc.delete('location_uris')
+
+        # index the top_container's linked via a sub_container
+        ASUtils.wrap(record['record']['instances']).each{|instance|
+          if instance['sub_container'] && instance['sub_container']['top_container']
+            doc['top_container_uri_u_sstr'] ||= []
+            doc['top_container_uri_u_sstr'] << instance['sub_container']['top_container']['ref']
+          end
+        }
+      end
+    }
+
+
+    add_document_prepare_hook {|doc, record|
+      if doc['primary_type'] == 'container_profile'
+        doc['title'] = record['record']['display_string']
+        doc['display_string'] = record['record']['display_string']
+
+        ['width', 'height', 'depth'].each do |property|
+          doc["container_profile_#{property}_u_sstr"] = record['record'][property]
+        end
+
+        doc["container_profile_dimension_units_u_sstr"] = record['record']['dimension_units']
+
+        doc['typeahead_sort_key_u_sort'] = record['record']['display_string']
+      end
+    }
+
+
+    add_document_prepare_hook { |doc, record|
+      doc['fullrecord'] = CommonIndexer.extract_string_values(record)
+      %w(finding_aid_subtitle finding_aid_author).each do |field|
+        if record['record'].has_key?(field)
+          doc['fullrecord'] << "#{record['record'][field]} "
+        end
+      end
+
+      if record['record'].has_key?('names')
+        doc['fullrecord'] << record['record']['names'].map {|name|
+          CommonIndexer.extract_string_values(name)
+        }.join(" ")
+      end
+    }
+
+
+    add_document_prepare_hook {|doc, record|
+      if doc['primary_type'] == 'location_profile'
+        doc['title'] = record['record']['display_string']
+        doc['display_string'] = record['record']['display_string']
+
+        ['width', 'height', 'depth'].each do |property|
+          doc["location_profile_#{property}_u_sstr"] = record['record'][property]
+        end
+
+        doc["location_profile_dimension_units_u_sstr"] = record['record']['dimension_units']
+
+        doc['typeahead_sort_key_u_sort'] = record['record']['display_string']
+      end
+
+      if record['record']['location_profile']
+        doc['location_profile_uri_u_sstr'] = record['record']['location_profile']['ref']
+        doc['location_profile_display_string_u_ssort'] = record['record']['location_profile']['_resolved']['display_string']
+      end
+    }
+
+
     record_has_children('collection_management')
     add_extra_documents_hook {|record|
       docs = []
@@ -335,7 +523,9 @@ class CommonIndexer
           'types' => ['collection_management'],
           'primary_type' => 'collection_management',
           'json' => cm.to_json(:max_nesting => false),
+          'cm_uri' => cm['uri'],
           'processing_priority' => cm['processing_priority'],
+          'processing_status' => cm['processing_status'], 
           'processing_hours_total' => cm['processing_hours_total'],
           'processing_funding_source' => cm['processing_funding_source'],
           'processors' => cm['processors'],
@@ -433,6 +623,7 @@ class CommonIndexer
 
 
   def delete_records(records)
+
     return if records.empty?
 
     req = Net::HTTP::Post.new("#{solr_url.path}/update")
@@ -506,13 +697,13 @@ class CommonIndexer
       doc = {}
 
       doc['id'] = uri
-     
+
       if ( !values["finding_aid_filing_title"].nil? && values["finding_aid_filing_title"].length > 0 )
-        doc['title'] = values["finding_aid_filing_title"] 
-      else 
+        doc['title'] = values["finding_aid_filing_title"]
+      else
         doc['title'] =  values['title']
-      end 
-        
+      end
+
       doc['primary_type'] = record_type
       doc['types'] = [record_type]
       doc['json'] = ASUtils.to_json(values)
@@ -598,7 +789,7 @@ class CommonIndexer
       end
     end
   end
-  
+
   def paused?
     self.singleton_class.class_variable_get(:@@paused_until) > Time.now
   end

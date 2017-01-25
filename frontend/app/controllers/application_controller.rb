@@ -10,6 +10,7 @@ class ApplicationController < ActionController::Base
   rescue_from ArchivesSpace::SessionGone, :with => :destroy_user_session
   rescue_from ArchivesSpace::SessionExpired, :with => :destroy_user_session
   rescue_from RecordNotFound, :with => :render_404
+  rescue_from AccessDeniedException, :with => :render_403
 
   # Allow overriding of templates via the local folder(s)
   if not ASUtils.find_local_directories.blank?
@@ -173,7 +174,9 @@ class ApplicationController < ActionController::Base
                       "related_agents", "resource", "parent", "creator",
                       "linked_instances", "linked_records", "related_accessions",
                       "linked_events", "linked_events::linked_records",
-                      "linked_events::linked_agents"]
+                      "linked_events::linked_agents",
+                      "top_container", "container_profile", "location_profile",
+                      "owner_repo"]
     }
   end
 
@@ -338,7 +341,7 @@ class ApplicationController < ActionController::Base
   end
 
   def render_403
-    return render :template => "403", :layout => nil if inline?
+    return render :status => 403, :template => "403", :layout => nil if inline?
 
     render "/403"
   end
@@ -534,6 +537,9 @@ class ApplicationController < ActionController::Base
 
     if response.code == '200'
       flash[:success] = I18n.t("actions.transfer_successful")
+    elsif response.code == '409'
+    # Transfer failed for a known reason
+      raise ArchivesSpace::TransferConflictException.new(ASUtils.json_parse(response.body).fetch('error'))
     else
       flash[:error] = I18n.t("actions.transfer_failed") + ": " + response.body
     end

@@ -507,7 +507,6 @@ module AspaceFormHelper
       opts[:escape] = true unless opts[:escape] == false
       opts[:base_url] ||= "/"
       value = clean_mixed_content(value, opts[:base_url]) if opts[:clean] == true
-      Rails.logger.debug(value)
       value =  @parent.preserve_newlines(value) if opts[:clean] == true
       value = CGI::escapeHTML(value) if opts[:escape]
       value.html_safe
@@ -771,7 +770,7 @@ module AspaceFormHelper
 
       if schema and schema["properties"].has_key?(property)
         if (schema["properties"][property].has_key?('dynamic_enum'))
-          value = I18n.t("#{prefix}enumerations.#{schema["properties"][property]["dynamic_enum"]}.#{value}", :default => value)
+          value = I18n.t({:enumeration => schema["properties"][property]["dynamic_enum"], :value => value}, :default => value)
         elsif schema["properties"][property].has_key?("enum")
           value = I18n.t("#{prefix}#{jsonmodel_type.to_s}.#{property}_#{value}", :default => value)
         elsif schema["properties"][property]["type"] === "boolean"
@@ -788,8 +787,8 @@ module AspaceFormHelper
       end
 
       html << "<div class='form-group'>"
-      html << "<div class='control-label col-md-3'>#{I18n.t("#{prefix}#{jsonmodel_type.to_s}.#{property}")}</div>"
-      html << "<div class='label-only col-md-9'>#{value}</div>"
+      html << "<div class='control-label col-sm-2'>#{I18n.t("#{prefix}#{jsonmodel_type.to_s}.#{property}")}</div>"
+      html << "<div class='label-only col-sm-8'>#{value}</div>"
       html << "</div>"
 
     end

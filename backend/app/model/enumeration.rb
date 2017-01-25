@@ -37,6 +37,10 @@ class Enumeration < Sequel::Model(:enumeration)
 
     new_enum_value = self.enumeration_value.find {|val| val[:value] == new_value}
 
+    if new_enum_value.nil?
+      raise NotFoundException.new("Can't find a value '#{new_value}' in enumeration #{self.id}")
+    end
+
     dependants = self.class.dependants_of(self.name) ? self.class.dependants_of(self.name) : []
     dependants.each do |definition, model|
       property_id = "#{definition[:property]}_id".intern
@@ -87,7 +91,7 @@ class Enumeration < Sequel::Model(:enumeration)
     removed_values.each do |value|
       DB.attempt {
         EnumerationValue.filter(:enumeration_id => obj.id,
-                                :value => value).delete
+                                :value => value, :suppressed => 0 ).delete
       }.and_if_constraint_fails {
         raise ConflictException.new("Can't delete a value that's in use: #{value}")
       }

@@ -1,4 +1,5 @@
 class CreatedAccessionsReport < AbstractReport
+  
   register_report({
                     :uri_suffix => "created_accessions",
                     :description => "Report on accessions created within a date range",
@@ -6,14 +7,18 @@ class CreatedAccessionsReport < AbstractReport
                                 ["to", Date, "The start of report range"]]
                   })
 
-  def initialize(params)
+  def initialize(params, job)
     super
-    @from = DateTime.parse(params[:from].strftime("%Y-%m-%d"))
-    @to = DateTime.parse(params[:to].strftime("%Y-%m-%d"))
+    from = params["from"] || Time.now.to_s
+    to = params["to"] || Time.now.to_s
+   
+    @from = DateTime.parse(from).to_time.strftime("%Y-%m-%d %H:%M:%S")
+    @to = DateTime.parse(to).to_time.strftime("%Y-%m-%d %H:%M:%S")
+  
   end
 
   def title
-    "Accessions created between #{@from.strftime("%Y-%m-%d")} and #{@to.strftime("%Y-%m-%d")}"
+    "Accessions created between #{@from} and #{@to}"
   end
 
   def headers

@@ -3,6 +3,7 @@ Bundler.require
 
 require 'sinatra'
 require 'java'
+require 'rspec'
 
 if ENV['COVERAGE_REPORTS'] == 'true'
   require 'aspace_coverage'
@@ -63,6 +64,7 @@ end
 
 require 'rack/test'
 require_relative "../app/lib/bootstrap"
+require_relative "../../common/jsonmodel_translatable.rb"
 ASpaceEnvironment.init(:unit_test)
 
 AppConfig[:search_user_secret] = "abc123"
@@ -72,6 +74,8 @@ require_relative "../app/model/backend_enum_source"
 JSONModel::init(:client_mode => true, :strict_mode => true,
                 :url => 'http://example.com', :allow_other_unmapped => true,
                 :enum_source => BackendEnumSource,
+                :mixins => [JSONModelTranslatable],
+                :i18n_source => I18n,
                 :priority => :high)
 
 module JSONModel
@@ -163,7 +167,11 @@ RSpec.configure do |config|
   config.include FactoryGirl::Syntax::Methods
   config.include SpecHelperMethods
   config.include JSONModel
-  config.treat_symbols_as_metadata_keys_with_true_values = true
+
+  
+  config.expect_with(:rspec) do |c|
+    c.syntax = [:should, :expect]
+  end
 
   # inclusions not in effect here
   config.before(:suite) do

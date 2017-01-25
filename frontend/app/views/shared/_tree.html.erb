@@ -93,7 +93,9 @@
 %>
 
 <div class="archives-tree-container">
-
+  
+  <div id="archives_tree_overlay" class="modal-backdrop in"></div>
+  <i class='spinner'></i>
   <div id="archives_tree_toolbar"></div>
 
   <div  id="archives_tree" class="archives-tree"
@@ -123,7 +125,9 @@
     {/macro}
 
     <span class="tree-node-text">
-      <span class="title-column pull-left">${AS.stripHTML(node.title)|h}</span>
+      <span class="title-column pull-left">${AS.stripHTML(node.title)|h}
+        <span style='display:none' class='selected-order pull-right badge'></span> 
+      </span>
       <span class="field-column field-column-3 pull-right" title="${AS.encodeForAttribute(render_container_summary(node))}">${render_container_summary(node)}</span>
       <span class="field-column field-column-2 pull-right" title="${AS.encodeForAttribute(render_instance_types(node))}">${render_instance_types(node)}</span>
       <span class="field-column field-column-1 pull-right">${node.level||"&#160;"}</span>
@@ -306,7 +310,7 @@
                   <%= render_aspace_partial :partial => "resources/linker", :locals => { :form => form, :exclude_ids => [root_record.id], :layout => "stacked" }%>
                 </fieldset>
                 <div class="form-actions">
-                  <button class="btn btn-default btn-primary pull-left"><%= I18n.t("actions.transfer") %></button>
+                  <button class="btn btn-default btn-primary pull-left transfer-button"><%= I18n.t("actions.transfer") %></button>
                   <a class="btn btn-default btn-cancel pull-right" href="#"><%= I18n.t("actions.cancel") %></a>
                 </div>
                 <% end %>
@@ -326,6 +330,7 @@
 
     <div id="tree_finish_action_template"><!--
       <div class="pull-right">
+        <a class='refresh-tree btn btn-xs btn-default btn-info' href='javascript:void(0)'><span class='glyphicon glyphicon-refresh'></span></a> 
         <a href="${APP_PATH}${config.root_node_type}s/${config.root_object_id}${location.hash}" class="btn btn-xs btn-success"><%= I18n.t "actions.finish_editing" %></a>
       </div>
     --></div>
@@ -336,6 +341,10 @@
 
     <div id="tree_unable_to_move_message_template"><!--
       <%= I18n.t ("actions.unable_to_move_message") %>
+    --></div>
+  
+    <div id="tree_move_ordering_problem_message_template"><!--
+      <%= I18n.t ("actions.move_ordering_problem_message") %>
     --></div>
 
   <% end  %>

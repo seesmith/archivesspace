@@ -1,7 +1,7 @@
 class ArchivesSpaceService < Sinatra::Base
 
   BASE_SEARCH_PARAMS =
-    [["q", String, "A search query string",
+    [["q", String, "A search query string.  Uses Lucene 4.0 syntax: http://lucene.apache.org/core/4_0_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html  Search index structure can be found in solr/schema.xml",
       :optional => true],
      ["aq", JSONModel(:advanced_query), "A json string containing the advanced query",
       :optional => true],
@@ -25,10 +25,19 @@ class ArchivesSpaceService < Sinatra::Base
       [String],
       "A list of document IDs that should be excluded from results",
       :optional => true],
+      ["hl",
+      BooleanParam,
+      "Whether to use highlighting",
+      :optional => true],
      ["root_record",
       String,
       "Search within a collection of records (defined by the record at the root of the tree)",
-      :optional => true]]
+      :optional => true],
+      [ "dt",
+        String,
+        "Format to return (JSON default)",
+        :optional => true ]
+  ]
 
 
   Endpoint.get('/repositories/:repo_id/search')
@@ -39,7 +48,11 @@ class ArchivesSpaceService < Sinatra::Base
     .permissions([:view_repository])
     .returns([200, ""]) \
   do
-    json_response(Search.search(params, params[:repo_id]))
+    if params[:dt] && params[:dt] == "csv"
+      stream_response(Search.search_csv(params, params[:repo_id]), "text/csv")
+    else 
+      json_response(Search.search(params, params[:repo_id]))
+    end 
   end
 
 

@@ -19,11 +19,13 @@
   ],
   "dependencies": {
     "jquery.hotkeys": "git@github.com:jeresig/jquery.hotkeys.git#~0.2.0",
-    "jstree": "git@github.com:vakata/jstree#~3.1.0",
+    "jstree": "git@github.com:vakata/jstree#~3.2.1",
     "lodash": "~3.6.0",
     "jquery.scrollTo": "~2.1.0",
     "bootstrap-select": "git@github.com:silviomoreto/bootstrap-select.git#v1.6.5",
-    "bootstrap3-typeahead": "git@github.com:bassjobsen/Bootstrap-3-Typeahead.git#v3.1.1"
+    "bootstrap3-typeahead": "git@github.com:bassjobsen/Bootstrap-3-Typeahead.git#v3.1.1",
+    "Sortable": "git@github.com:RubaXa/Sortable.git#v1.2.0",
+    "jquery.tablesorter": "~2.23.2"
   },
   "install": {
     "path": {
@@ -79,7 +81,28 @@
             "bower_components/bootstrap-select/dist/css/bootstrap-select.css": "bootstrap-select.css.less"
           }
         ]
+      },
+      "Sortable": {
+        "mapping": [
+          {
+            "bower_components/Sortable/Sortable.js": "../Sortable.js"
+          }
+        ]
+      },
+      "jquery.tablesorter": {
+        "mapping": [
+          {
+            "bower_components/jquery.tablesorter/dist/js/jquery.tablesorter.min.js": "../jquery.tablesorter.min.js"
+          },
+          {
+            "bower_components/jquery.tablesorter/dist/js/jquery.tablesorter.widgets.min.js": "../jquery.tablesorter.widgets.min.js"
+          },
+          {
+            "bower_components/jquery.tablesorter/dist/css/theme.bootstrap.min.css": "theme.bootstrap.min.css"
+          }
+        ]
       }
+
     },
     "ignore": [
       "jquery"

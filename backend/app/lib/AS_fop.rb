@@ -24,22 +24,21 @@ class ASFop
    @source = source
    @output = output ? output : ASUtils.tempfile('fop.pdf') 
    @xslt = File.read( StaticAssetFinder.new(File.join('stylesheets')).find('as-ead-pdf.xsl')) 
-   # WHAT A HACK! but you can't pass in a URI as a variable? jeezus.  
-   filepath =  File.join(ASUtils.find_base_directory, 'stylesheets', 'as-helper-functions.xsl').gsub("\\", "/" )
-   @xslt.gsub!('<xsl:include href="as-helper-functions.xsl"/>', "<xsl:include href='#{filepath}'/>" ) 
   end
 
 
   def to_fo
-    transformer = Saxon.XSLT(@xslt)
+    transformer = Saxon.XSLT(@xslt, system_id: File.join(ASUtils.find_base_directory, 'stylesheets', 'as-ead-pdf.xsl') )
     transformer.transform(Saxon.XML(@source)).to_s
   end
 
   # returns a temp file with the converted PDF
   def to_pdf
     begin 
-      fo = StringIO.new(to_fo).to_inputstream  
-      fop = FopFactory.newInstance.newFop(MimeConstants::MIME_PDF, @output.to_outputstream)
+      fo = StringIO.new(to_fo).to_inputstream
+      fopfac = FopFactory.newInstance
+      fopfac.setBaseURL( File.join(ASUtils.find_base_directory, 'stylesheets') ) 
+      fop = fopfac.newFop(MimeConstants::MIME_PDF, @output.to_outputstream) 
       transformer = TransformerFactory.newInstance.newTransformer()
       res = SAXResult.new(fop.getDefaultHandler)
       transformer.transform(StreamSource.new(fo), res)
@@ -52,7 +51,9 @@ class ASFop
   def to_pdf_stream
     begin 
       fo = StringIO.new(to_fo).to_inputstream  
-      fop = FopFactory.newInstance.newFop(MimeConstants::MIME_PDF, @output.to_outputstream)
+      fopfac = FopFactory.newInstance
+      fopfac.setBaseURL( File.join(ASUtils.find_base_directory, 'stylesheets') ) 
+      fop = fopfac.newFop(MimeConstants::MIME_PDF, @output.to_outputstream) 
       transformer = TransformerFactory.newInstance.newTransformer()
       res = SAXResult.new(fop.getDefaultHandler)
       transformer.transform(StreamSource.new(fo), res)

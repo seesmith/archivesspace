@@ -1,5 +1,7 @@
 <%= setup_context(:object => @accession) %>
 
+<%= render_aspace_partial :partial => "transfer/transfer_failures", :locals => { :transfer_errors => @transfer_errors } %>
+
 <div class="row">
    <div class="col-md-3">
       <%= render_aspace_partial :partial => "sidebar" %>
@@ -87,15 +89,19 @@
            <%= render_aspace_partial :partial => "collection_management/show", :locals => { :collection_management => @accession.collection_management, :context => readonly, :section_id => "accession_collection_management_" } %>
          <% end %>
 
-        <% if @accession.classifications %>
-          <%= render_aspace_partial :partial => "classifications/show", :locals => { :classifications => @accession.classifications, :context => readonly, :section_id => "accession_classifications_" } %>
-        <% end %>
+         <% if @accession.classifications && !@accession.classifications.empty? %>
+             <%= render_aspace_partial :partial => "classifications/show", :locals => { :classifications => @accession.classifications, :context => readonly, :section_id => "accession_classifications_" } %>
+         <% end %>
 
-        <%= render_aspace_partial :partial => "linked_events/show", :locals => { :linked_events => @accession.linked_events, :context => readonly, :section_id => "accession_linked_events_" } %>
+         <%= render_aspace_partial :partial => "linked_events/show", :locals => { :linked_events => @accession.linked_events, :context => readonly, :section_id => "accession_linked_events_" } %>
 
          <% if @accession.user_defined %>
            <%= render_aspace_partial :partial => "user_defined/show", :locals => { :user_defined => @accession.user_defined, :context => readonly, :section_id => "accession_user_defined_" } %>
          <% end %>
+
+        <% if @accession.external_ids.length > 0 && show_external_ids? %>
+          <%= render_aspace_partial :partial => "external_ids/show", :locals => { :external_ids => @accession.external_ids, :context => readonly, :section_id => "accession_external_ids_" } %>
+        <% end %>
 
 
          <%= show_plugins_for(@accession, readonly) %>

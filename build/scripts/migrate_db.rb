@@ -39,11 +39,12 @@ begin
 
     end
 
-    puts "Running migrations against #{AppConfig[:db_url]}"
+    puts "Running migrations against #{AppConfig[:db_url_redacted]}"
     DBMigrator.setup_database(db)
     puts "All done."
   end
-rescue NameError => e
+rescue Sequel::AdapterNotFound => e
+
   if AppConfig[:db_url] =~ /mysql/
     libdir = File.expand_path(File.join(File.dirname($0), "..", "..", "lib"))
 

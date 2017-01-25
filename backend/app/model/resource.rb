@@ -20,9 +20,14 @@ class Resource < Sequel::Model(:resource)
   include UserDefineds
   include ComponentsAddChildren
   include Classifications
+  include Transferable
   include Events
   include Publishable
   include RevisionStatements
+  include ReindexTopContainers
+  include RightsRestrictionNotes 
+  include MapToAspaceContainer
+  include RepresentativeImages
 
   enable_suppression
 

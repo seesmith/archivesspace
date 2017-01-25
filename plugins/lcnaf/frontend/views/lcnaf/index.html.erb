@@ -17,22 +17,28 @@
       </div>
       <div class="radio">
         <label for="lcnaf_service_loc">
-          <input type="radio" name="lcnaf_service" value="loc" label="lcnaf_service_loc">
-          LOC - http://id.loc.gov
+          <input type="radio" name="lcnaf_service" value="lcnaf" id="lcnaf_service_loc">
+          LCNAF - http://id.loc.gov/authorities/names
         </label>
+      </div>
+      <div class="radio">
+          <label for="lcsh_service_loc">
+              <input type="radio" name="lcnaf_service" value="lcsh" id="lcsh_service_loc">
+           LCSH - http://id.loc.gov/authorities/subjects
+          </label>
       </div>
     </div>
 
     <div class='control-group form-group required'> 
       <label class='control-label' for="family-name-search-query"><%= I18n.t("plugins.lcnaf.search.family_name") %></label>
       <div class='controls'> 
-        <input type="text" name="family_name" class="family-name-search-query" id="family-name-search-query" class="input-large"></input>
+        <input type="text" name="family_name" class="family-name-search-query lcnaf-name-input input-large" id="family-name-search-query"></input>
       </div>
     </div>
     <div class='control-group form-group'> 
       <label for="given-name-search-query"><%= I18n.t("plugins.lcnaf.search.given_name") %></label>
       <div class='controls'> 
-        <input type="text" name="given_name"  id="given-name-search-query" class="input-large"></input>
+        <input type="text" name="given_name" id="given-name-search-query" class="lcnaf-name-input input-large"></input>
       </div>
     </div>
     
@@ -63,23 +69,24 @@
 
 </div>
 
-<script src="<%= "#{AppConfig[:frontend_prefix]}assets/lcnaf.js" %>"></script>
-<script src="<%= "#{AppConfig[:frontend_prefix]}assets/highlight.js/highlight.pack.js" %>"></script>
+<script src="<%= "#{AppConfig[:frontend_proxy_prefix]}assets/lcnaf.js" %>"></script>
+<script src="<%= "#{AppConfig[:frontend_proxy_prefix]}assets/highlight.js/highlight.pack.js" %>"></script>
 
-<link href="<%= "#{AppConfig[:frontend_prefix]}assets/styles/lcnaf.css" %>" media="all" rel="stylesheet" type="text/css">
-<link href="<%= "#{AppConfig[:frontend_prefix]}assets/highlight.js/styles/tomorrow.css" %>" media="all" rel="stylesheet" type="text/css">
+<link href="<%= "#{AppConfig[:frontend_proxy_prefix]}assets/styles/lcnaf.css" %>" media="all" rel="stylesheet" type="text/css">
+<link href="<%= "#{AppConfig[:frontend_proxy_prefix]}assets/highlight.js/styles/tomorrow.css" %>" media="all" rel="stylesheet" type="text/css">
 
 
 <div id="template_lcnaf_result"><!--
   <div class="lcnaf-result">
     <div class="row">
-      <div class="col-md-2">
-          <span class="pull-left alert alert-success hide"><%= I18n.t("plugins.lcnaf.messages.selected") %></span>
-          <button class="btn btn-default hide" data-lccn="${record.lccn}"><%= I18n.t("plugins.lcnaf.actions.select") %></button>
-      </div>
-      <div class="col-md-10 lcnaf-marc">
-        <pre><code>${record.xml|h}</code></pre>
-      </div>
+      <div class="col-md-12">
+        <div class='alert alert-info'>${record.title}
+          <span class="pull-right alert alert-success hide"><%= I18n.t("plugins.lcnaf.messages.selected") %></span>
+          <button class="pull-right btn btn-default hide select-record" data-lccn="${record.lccn}"><%= I18n.t("plugins.lcnaf.actions.select") %></button>
+          <button class="pull-right btn btn-default hide show-record" ><%= I18n.t("plugins.lcnaf.actions.show_record") %></button>
+          <div class="col-md-12 lcnaf-marc hide"><pre><code>${record.xml|h}</code></pre></div> 
+        </div> 
+      </div>   
     </div>
   </div>
 --></div>

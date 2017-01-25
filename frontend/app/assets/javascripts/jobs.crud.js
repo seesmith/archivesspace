@@ -114,26 +114,44 @@ $(function() {
 
 
     $("#job_job_type_", $form).change(function() {
+      $("#job_form_messages", $form).empty()
 
       if ($(this).val() === "") {
-        $("#job_form_messages", $form)
-          .empty()
         //
-      } else if ($(this).val() === "print_to_pdf_job") {
-
+      } else if ($(this).val() === "report_job") {
         $("#job_form_messages", $form)
+          .html(AS.renderTemplate("template_report_instructions"));
+        // we disable to form...
+        $('.form-actions .btn-primary').addClass('disabled'); 
+        $("#noImportTypeSelected", $form).hide();
+        $("#job_type_fields", $form)
           .empty()
+          .html(AS.renderTemplate("template_report_job", {id_path: "job_job_params_", path: "job[job_params]"}));
+        $(".linker:not(.initialised)").linker();
+        $(document).triggerHandler("subrecordcreated.aspace", ["date", $form]); 
+        $('.select-record', $form).on("click", function(event) { 
+          $('.accordion-toggle').click();
+          $('.form-actions .btn-primary').removeClass('disabled'); 
+          event.preventDefault(); 
+          var report = $(this).data('report');
+          var $listing = $(this).parent();
+          $(this).siblings(".selected-message").removeClass("hide")
+          $(this).addClass("hide")
+          $listing.removeClass('alert-info').addClass('alert-success'); 
+          $listing.parent().siblings('.report-listing').fadeOut('slow', function() { $(this).remove(); });
+        });
+      
+        initLocationReportSubForm();
+      } else if ($(this).val() === "print_to_pdf_job") {
         $("#noImportTypeSelected", $form).hide();
         $("#job_type_fields", $form)
           .empty()
           .html(AS.renderTemplate("template_print_to_pdf_job", {id_path: "print_to_pdf_job", path: "print_to_pdf_job"}));
-        
         $(".linker:not(.initialised)").linker();
-      
+
       } else if ($(this).val() === "find_and_replace_job") {
         $("#noImportTypeSelected", $form).hide();
         $("#job_form_messages", $form)
-          .empty()
           .html(AS.renderTemplate("template_find_and_replace_warning"));
         $("#job_type_fields", $form)
           .empty()
@@ -224,16 +242,10 @@ $(function() {
         });
         $("#job_import_type_", $form).trigger("change");
 
-
-
       }
     });
 
     $("#job_job_type_", $form).trigger("change");
-
-
-
-
 
     var handleError = function(errorHTML) {
 
@@ -259,16 +271,17 @@ $(function() {
             if (arr[i].name === "find_and_replace_job[ref]") {
               arr[i].name = "find_and_replace_job[base_record_uri]";
             }
-          
+
           }
 
         } else if ( jobType == 'print_to_pdf_job' ) {
-          // yep. copying this as well. no crazy about this 
+          // yep. copying this as well. no crazy about this
           for (var i=0; i < arr.length; i++) {
             if (arr[i].name === "print_to_pdf_job[ref]") {
                 arr[i].name = "print_to_pdf_job[source]";
               }
-          } 
+          }
+
         } else if (jobType === 'import_job') {
           console.log("ATTACH");
           $(".import-file.file-attached").each(function() {
@@ -323,6 +336,31 @@ $(function() {
         handleError(xhr.responseText);
       }
     });
+  };
+
+
+  var initLocationReportSubForm = function () {
+    $(document).on('change', '#location_report_type', function () {
+      var selected_report_type = $(this).val();
+
+      $('.report_type').hide();
+
+      var location_start_linker = $('#report_location_start');
+      var location_end_linker = $('#report_location_end');
+
+      if (selected_report_type === 'single_location') {
+        location_end_linker.hide();
+        location_start_linker.find('label').text(location_start_linker.data('singular-label'));
+      } else if (selected_report_type === 'location_range') {
+        location_start_linker.find('label').text(location_start_linker.data('range-label'));
+        location_end_linker.find('label').text(location_end_linker.data('range-label'));
+        location_end_linker.show();
+      }
+
+      $('.report_type.' + selected_report_type).show();
+    });
+
+    $('#location_report_type').trigger('change');
   };
 
   initImportJobForm();

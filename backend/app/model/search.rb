@@ -1,9 +1,12 @@
 class Search
 
 
-  def self.search(params, repo_id)
+  def self.search(params, repo_id )
+   
     show_suppressed = !RequestContext.get(:enforce_suppression)
     show_published_only = RequestContext.get(:current_username) === User.PUBLIC_USERNAME
+
+    Log.debug(params.inspect)
 
     query = if params[:q]
               Solr::Query.create_keyword_search(params[:q])
@@ -24,10 +27,33 @@ class Search
           set_simple_filters(params[:simple_filter]).
           set_facets(params[:facet]).
           set_sort(params[:sort]).
-          set_root_record(params[:root_record])
+          set_root_record(params[:root_record]).
+          highlighting(params[:hl]).
+          set_writer_type( params[:dt] || "json" )
 
+      query.remove_csv_header if ( params[:dt] == "csv" and params[:no_csv_header] ) 
+    
+      Solr.search(query)
+  end
 
-    Solr.search(query)
+  def self.search_csv( params, repo_id )  
+    # first let's get a json response with the number of pages 
+    p = params.dup
+    p[:dt] = "json"
+    result = search(p, repo_id)
+    total_pages = result["last_page"].to_i || 2
+    page = 2 # we start on the second page bc the first will have headers
+
+    Enumerator.new do |y|
+      # we get page 1 of csv w headers 
+      y << search(params, repo_id)
+      params[:no_csv_header] = true 
+      while page <= total_pages 
+        params[:page] = page
+        y << search(params, repo_id)
+        page +=1 
+      end
+    end
   end
 
 end

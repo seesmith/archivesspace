@@ -2,9 +2,9 @@ require_relative 'jasper_report'
 
 class JSONReport < JasperReport 
 
-  def initialize(params)
+  def initialize(params, job)
     @repo_id = params[:repo_id] if params.has_key?(:repo_id) && params[:repo_id] != ""
-    @base_path = File.join(report_base, self.class.name ) 
+    @base_path = File.join(self.class.report_base, self.class.name ) 
     @datasource = Tempfile.new(self.class.name + '.data')
     
     ObjectSpace.define_finalizer( self, self.class.finalize(self) ) 

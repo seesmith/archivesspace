@@ -35,14 +35,37 @@ module TreeNodes
   end
 
 
+  # this is just a CYA method, that might be removed in the future. We need to
+  # be sure that all the positional gaps.j
   def order_siblings
     # add this to avoid DB constraints 
     siblings.update(:parent_name => Sequel.lit(DB.concat('CAST(id as CHAR(10))', "'_temp'")))
+   
+    # get set a list of ids and their order based on their position
+    position_map = siblings.select(:id).order(:position).each_with_index.inject({}) { |m,( obj, index) | m[obj[:id]] = index; m }
     
-    siblings.order(:position).each_with_index do |row, i| 
-          row.update(:position => i)
+    # now we do the update in batches of 200 
+    position_map.each_slice(200) do |pm|
+      # the slice reformat the hash...so quickly format it back 
+      pm = pm.inject({}) { |m,v| m[v.first] = v.last; m } 
+      # this ids that we're updating in this batch 
+      sibling_ids = pm.keys 
+     
+      # the resulting update will look like:
+      #  UPDATE "ARCHIVAL_OBJECT" SET "POSITION" = (CASE WHEN ("ID" = 10914)
+      #  THEN 0 WHEN ("ID" = 10915) THEN 1 WHEN ("ID" = 10912) THEN 2 WHEN
+      #  ("ID" = 10913) THEN 3 WHEN ("ID" = 10916) THEN 4 WHEN ("ID" = 10921)
+      #  THEN 5 WHEN ("ID" = 10917) THEN 6 WHEN ("ID" = 10920) THEN 7 ELSE 0
+      #  END) WHERE (("ROOT_RECORD_ID" = 3) AND ("PARENT_ID" = 10911) AND (NOT
+      #  "POSITION" IS NULL) AND ("ID" IN (10914, 10915, 10912, 10913, 10916,
+      #  10921, 10917, 10920))
+      #  )
+      # this should be faster than just iterating thru all the children,
+      # since it does it in batches of 200 and limits the number of updates.  
+      siblings.filter(:id => sibling_ids).update( :position => Sequel.case(pm, 0, :id) )
     end
-    
+   
+    # now we return the parent_name back so our DB constraints are back on.:w
     siblings.update(:parent_name => self.parent_name )
   end
 
@@ -130,8 +153,8 @@ module TreeNodes
   def update_position_only(parent_id, position)
     if self[:root_record_id]
       root_uri = self.class.uri_for(self.class.root_record_type.intern, self[:root_record_id])
-      parent_uri = parent_id ? self.class.uri_for(self.class.node_record_type.intern, parent_id) : nil
-      sequence = "#{root_uri}_#{parent_uri}_children_position"
+      parent_uri = parent_id ? self.class.uri_for(self.class.node_record_type.intern, parent_id) : root_uri
+      sequence = "#{parent_uri}_children_position"
 
       parent_name = if parent_id
                       "#{parent_id}@#{self.class.node_record_type}"
@@ -190,7 +213,7 @@ module TreeNodes
     # All records under this one will be transferred too
     children.each_with_index do |child, i|
       child.transfer_to_repository(repository, transfer_group + [self]) 
-      child.update_position_only( child.parent_id, i ) 
+    #  child.update_position_only( child.parent_id, i ) 
     end
     
     RequestContext.open(:repo_id => repository.id ) do
@@ -232,9 +255,9 @@ module TreeNodes
     def sequence_for(json)
       if json[root_record_type]
         if json.parent
-          "#{json[root_record_type]['ref']}_#{json.parent['ref']}_children_position"
+          "#{json.parent['ref']}_children_position"
         else
-          "#{json[root_record_type]['ref']}__children_position"
+          "#{json[root_record_type]['ref']}_children_position"
         end
       end
     end

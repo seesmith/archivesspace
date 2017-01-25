@@ -1,5 +1,7 @@
 //= require mixed_content.js
 //= require subrecord.collapsible.js
+//= require subrecord.too_many.js
+//= require notes_override.crud.js
 
 $(function() {
 
@@ -9,11 +11,10 @@ $(function() {
 
       var $this = $(this);
 
-      if ($this.hasClass("initialised")) {
+      if ($this.hasClass("initialised") || $this.hasClass("too-many") ) {
         return;
       }
-
-      $this.addClass("initialised");
+        
 
       var index = $(".subrecord-form-fields", $this).length;
 
@@ -113,6 +114,9 @@ $(function() {
               $subform.parent().remove()
             } else {
               $subform.remove();
+              if( $(".subrecord-form-list:first", $this).children("li").length < 2 ) {
+                $(".subrecord-form-heading:first .btn.apply-note-order", $this).attr("disabled", "disabled");
+              }
             }
 
             $this.parents("form:first").triggerHandler("formchanged.aspace");
@@ -264,7 +268,58 @@ $(function() {
         $(document).triggerHandler("subrecordcreated.aspace", ["note", $note_form]);
       };
 
+
+      var applyNoteOrder = function(event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var $target_subrecord_list = $(".subrecord-form-list:first", $this);
+
+        $.ajax({
+          url: APP_PATH+"notes/note_order",
+          type: "GET",
+          success: function(note_order) {
+            var $listed = $target_subrecord_list.children().detach()
+            var sorted = _.sortBy($listed, function(li) {
+
+              var type = $('select.note-type', $(li)).val();
+              //Some note types don't have a select, so try to work it out another way
+              if (_.isUndefined(type)) {
+                if ($('select.top-level-note-type', $(li)).length) {
+                  type = $('select.top-level-note-type', $(li)).val().replace(/^note_/, '')
+                } else {
+                  type = $('.subrecord-form-fields', $(li)).data('type').replace(/^note_/, '')
+                }
+              }
+
+              return _.indexOf(note_order, type);
+            });
+
+            var oldOrder = _.map($listed, function(li) {
+              return $(li).data("index");
+            });
+
+            var newOrder = _.map(sorted, function(li) {
+              return $(li).data("index");
+            });
+
+            if (!_.isEqual(oldOrder, newOrder)) {
+              $("form.aspace-record-form").triggerHandler("formchanged.aspace");
+            }
+
+            $(sorted).appendTo($target_subrecord_list);
+          },
+          error: function(obj, errorText, errorDesc) {
+            $container.html("<div class='alert alert-error'><p>An error occurred loading note order list.</p><pre>"+errorDesc+"</pre></div>");
+          }
+        });
+
+      };
+
+
       var createTopLevelNote = function(event) {
+
         event.preventDefault();
         event.stopPropagation();
 
@@ -274,13 +329,13 @@ $(function() {
         // if it's inline, we need to bring a special template, since the
         // template has already been defined for the parent record....
         if ( is_inline == true ) {
-          var form_note_type =  $this.get(0).id; 
-          var inline_template = "template_" + form_note_type + "_note_type_selector_inline"; 
+          var form_note_type =  $this.get(0).id;
+          var inline_template = "template_" + form_note_type + "_note_type_selector_inline";
           var $subform = $(AS.renderTemplate(inline_template));
-        
-        } else {   
+
+        } else {
           var $subform = $(AS.renderTemplate("template_note_type_selector"));
-        } 
+        }
 
         $subform = $("<li>").data("type", $subform.data("type")).append($subform);
         $subform.attr("data-index", index);
@@ -288,6 +343,11 @@ $(function() {
         $target_subrecord_list.append($subform);
 
         AS.initSubRecordSorting($target_subrecord_list);
+
+        if ($target_subrecord_list.children("li").length > 1) {
+           $(".subrecord-form-heading:first .btn.apply-note-order", $this).removeAttr("disabled");
+        }
+
 
         $(document).triggerHandler("subrecordcreated.aspace", ["note", $subform]);
 
@@ -303,20 +363,39 @@ $(function() {
         index++;
       };
 
-      $(".subrecord-form-heading:first .btn", $this).click(createTopLevelNote);
+      $(".subrecord-form-heading:first .btn.add-note", $this).click(createTopLevelNote);
 
-      // initialising forms
-      var $list = $("ul.subrecord-form-list:first", $this)
-      AS.initSubRecordSorting($list);
-      AS.initAddAsYouGoActions($this, $list);
+      $(".subrecord-form-heading:first .btn.apply-note-order", $this).click(applyNoteOrder);
 
-      if ($(".subrecord-form-list > .subrecord-form-wrapper > .subrecord-form-fields", $this).length) {
-        $(".subrecord-form-list > .subrecord-form-wrapper > .subrecord-form-fields", $this).each(function() {
-          initNoteForm($(this), false);
-        });
+      var $target_subrecord_list = $(".subrecord-form-list:first", $this);
+
+      if ($target_subrecord_list.children("li").length > 1) {
+        $(".subrecord-form-heading:first .btn.apply-note-order", $this).removeAttr("disabled");
+      }
+     
+      var initRemoveActions = function() {
         $(".subrecord-form-inline", $this).each(function() {
           initRemoveActionForSubRecord($(this));
         });
+      } 
+
+      var initNoteForms = function($noteForm ) { 
+        // initialising forms
+        var $list = $("ul.subrecord-form-list:first", $this)
+        AS.initSubRecordSorting($list);
+        AS.initAddAsYouGoActions($this, $list);
+        $(".subrecord-form-list > .subrecord-form-wrapper:visible > .subrecord-form-fields:not('.initialised')", $noteForm).each(function() {
+          initNoteForm($(this), false);
+        });
+        initRemoveActions();
+      }
+      
+      $existingNotes = $(".subrecord-form-list:first > .subrecord-form-wrapper", $this);
+      tooManyNotes = AS.initTooManySubRecords($this, $existingNotes.length, initNoteForms );
+
+      if (tooManyNotes === false ) {
+        $this.addClass("initialised");
+        initNoteForms($this);
       }
     });
   };
@@ -327,7 +406,7 @@ $(function() {
       $("section.notes-form.subrecord-form:not(.initialised)", $container).init_notes_form();
     });
 
-    $("section.notes-form.subrecord-form:not(.initialised)").init_notes_form();
+   // $("section.notes-form.subrecord-form:not(.initialised)").init_notes_form();
   });
 
 });

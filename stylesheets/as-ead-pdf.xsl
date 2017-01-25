@@ -265,7 +265,12 @@
         -->
         <xsl:apply-templates select="local:parseDate(.)"/>
     </xsl:template>
-    <!-- This template can be modified to include repository specific icons, use the template as a example.  -->
+    <!--
+        This template can be modified to include repository specific icons,
+        use the template as an example. PDF exports only support this single
+        icon template for an image in this directory specified by filename
+        i.e. src="myicon.png"
+    -->
     <xsl:template name="icon">
         <fo:block text-align="left" margin-left="-.75in" margin-top="-.5in">
             <fo:external-graphic src="archivesspace.small.png" content-height="75%" content-width="75%"/>
@@ -368,7 +373,7 @@
                                     <xsl:apply-templates select="child::*/ead:head"/>        
                                 </xsl:when>
                                 <xsl:otherwise>
-                                    <xsl:apply-templates select="child::*/ead:unittitle"/>
+                                    <xsl:value-of select="ead:did/ead:unittitle"/>
                                 </xsl:otherwise>
                             </xsl:choose>    
                         </fo:bookmark-title>
@@ -382,7 +387,7 @@
                                         <xsl:apply-templates select="child::*/ead:head"/>        
                                     </xsl:when>
                                     <xsl:otherwise>
-                                        <xsl:apply-templates select="child::*/ead:unittitle"/>
+                                        <xsl:value-of select="ead:did/ead:unittitle"/>
                                     </xsl:otherwise>
                                 </xsl:choose>    
                             </fo:bookmark-title>
@@ -1543,7 +1548,7 @@
     <xsl:template match="ead:repository | ead:origination | ead:unitdate | ead:unitid  
         | ead:physdesc | ead:physloc | ead:langmaterial | ead:materialspec | ead:container 
         | ead:abstract | ead:note" mode="dsc">
-        <xsl:if test="child::*">
+        <xsl:if test="normalize-space()">
         <fo:block xsl:use-attribute-sets="smpDsc">
             <fo:inline text-decoration="underline">
             <xsl:choose>

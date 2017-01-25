@@ -43,13 +43,14 @@ module ASpaceExport
         results = []
         linked = self.linked_agents || []
         linked.each_with_index do |link, i|
-
+          next if link['role'] == 'creator'
           role = link['relator'] ? link['relator'] : (link['role'] == 'source' ? 'fmo' : nil)
 
           agent = link['_resolved'].dup
           sort_name = agent['display_name']['sort_name']
           rules = agent['display_name']['rules']
           source = agent['display_name']['source']
+          authfilenumber = agent['display_name']['authority_id']
           content = sort_name.dup
 
           if link['terms'].length > 0
@@ -67,6 +68,7 @@ module ASpaceExport
           atts[:role] = role if role
           atts[:source] = source if source
           atts[:rules] = rules if rules
+          atts[:authfilenumber] = authfilenumber if authfilenumber
 
           results << {:node_name => node_name, :atts => atts, :content => content}
         end
@@ -87,8 +89,8 @@ module ASpaceExport
 
           node_name = case subject['terms'][0]['term_type']
                       when 'function'; 'function'
-                      when 'genre_form' || 'style_period';  'genreform'
-                      when 'geographic'|| 'cultural_context'; 'geogname'
+                      when 'genre_form', 'style_period';  'genreform'
+                      when 'geographic', 'cultural_context'; 'geogname'
                       when 'occupation';  'occupation'
                       when 'topical'; 'subject'
                       when 'uniform_title'; 'title'
@@ -101,6 +103,7 @@ module ASpaceExport
 
           atts = {}
           atts['source'] = subject['source'] if subject['source']
+          atts['authfilenumber'] = subject['authority_id'] if subject['authority_id']
 
           results << {:node_name => node_name, :atts => atts, :content => content}
         end
@@ -123,7 +126,7 @@ module ASpaceExport
             normal_suffix = (date['date_type'] == 'single' || date['end'].nil? || date['end'] == date['begin']) ? date['begin'] : date['end']
             normal += normal_suffix ? normal_suffix : ""
           end
-          type = %w(single inclusive).include?(date['date_type']) ? 'inclusive' : 'bulk' 
+          type = %w(single inclusive).include?(date['date_type']) ? 'inclusive' : 'bulk'
           content = if date['expression']
                     date['expression']
                   elsif date['date_type'] == 'bulk'
@@ -157,10 +160,28 @@ module ASpaceExport
       end
     end
 
+    # If we're asked for child 0, grab records 0..PREFETCH_SIZE from the DB
+    PREFETCH_SIZE = 20
+
+    def ensure_prefetched(index)
+      unless @prefetched_ids && @prefetched_ids.cover?(index)
+        new_start = (index / PREFETCH_SIZE) * PREFETCH_SIZE
+        new_end = [new_start + PREFETCH_SIZE,
+                   @children.count].min
+
+        @prefetched_ids = Range.new(new_start, new_end, true)
+        @prefetched_records = @child_class.prefetch(@prefetched_ids.map {|index| @children[index]}, @repo_id)
+      end
+    end
 
     def get_child(index)
-      subtree = @children[index]
-      @child_class.new(subtree, @repo_id)
+      if @child_class.respond_to?(:prefetch)
+        ensure_prefetched(index)
+        rec = @prefetched_records[index % PREFETCH_SIZE]
+        @child_class.from_prefetched(@children[index], rec, @repo_id)
+      else
+        @child_class.new(@children[index], @repo_id)
+      end
     end
   end
 

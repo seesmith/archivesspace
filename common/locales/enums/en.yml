@@ -313,10 +313,12 @@ en:
       terabytes: Terabytes
       volumes: Volumes
     collection_management_processing_priority:
+      none: Not specified
       high: High
       medium: Medium
       low: Low
     collection_management_processing_status:
+      none: Not specified
       new: New
       in_progress: In Progress
       completed: Completed
@@ -344,6 +346,7 @@ en:
       accumulation: Accumulation
       acknowledgement: Acknowledgement
       acknowledgement_sent: Acknowledgement Sent
+      acknowledgement_received: Acknowledgement Received
       agreement_received: Agreement Received
       agreement_sent: Agreement Sent
       agreement_signed: Agreement Signed
@@ -368,6 +371,10 @@ en:
       migration: Migration
       normalization: Normalization
       processed: Processed
+      processing_new: Processing New
+      processing_started: Processing Started
+      processing_in_progress: Processing in Progress
+      processing_completed: Processing Completed
       publication: Publication
       replication: Replication
       rights_transferred: Rights Transferred
@@ -1394,6 +1401,25 @@ en:
       print_to_pdf_job: Print To PDF 
       import_job: Import Data
       find_and_replace_job: Batch Find and Replace (Beta)
+      report_job: Reports
+      container_conversion_job: Reports
+    dimension_units:
+      inches: Inches
+      feet: Feet
+      yards: Yards
+      millimeters: Millimeters
+      centimeters: Centimeters
+      meters: Meters
+    restriction_type:
+      RestrictedSpecColl: 1 - Donor/university imposed access restriction
+      RestrictedCurApprSpecColl: 2 - Repository imposed access restriction
+      RestrictedFragileSpecColl: 3 - Restricted fragile
+      InProcessSpecColl: 4 - Restricted in-process
+      ColdStorageBrbl: 5 - Other
+    location_function_type:
+      av_materials: Audiovisual Materials
+      arrivals: Arrivals
+      shared: Shared
 
 
   enumeration_names:
@@ -1461,3 +1487,6 @@ en:
     user_defined_enum_3: User Defined Enum 3
     user_defined_enum_4: User Defined Enum 4
     job_type: Job Type
+    dimension_units: Dimension Units
+    restriction_type: Local Access Restriction Type
+    location_function_type: Location Function Type

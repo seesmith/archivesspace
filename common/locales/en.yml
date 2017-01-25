@@ -7,7 +7,7 @@ en:
   boolean:
     "true": "True"
     "false": "False"
-  
+
   user_defined: &user_defined_attributes
     boolean_1: Boolean 1
     boolean_2: Boolean 2
@@ -75,8 +75,8 @@ en:
 
   digital_object: &digital_object_attributes
     <<: *section_tooltips
-    user_defined: 
-      <<: *user_defined_attributes 
+    user_defined:
+      <<: *user_defined_attributes
     title: Title
     title_tooltip: |
         <p>A title expression for the digital object.  May be transcribed from the object, or inherited from a source resource/resource component record, or provided by the repository.</p>
@@ -182,6 +182,8 @@ en:
     display_string: Display String
     has_unpublished_ancestor: Has Unpublished Ancestor?
     holdings: Holdings
+    owner_repo: Reserved For
+    owner_repo_tooltip: A repository that has reserved this location
     _singular: Location
     _plural: Locations
 
@@ -197,6 +199,18 @@ en:
     end: Range End
     _singular: Batch Locations
     _plural: Batch Locations
+
+  location_function:
+    location_function_type: Function Type
+    _singular: Function
+    _plural: Functions
+
+  function:
+    _singular: Function
+    _plural: Functions
+    _frontend:
+      action:
+        add: Add Function
 
   container_location:
     status: Status
@@ -576,8 +590,8 @@ en:
     _plural: Contact Details
 
   telephone: &telephone
-    _plural: Telephone Numbers 
-    number_type: Number Type 
+    _plural: Telephone Numbers
+    number_type: Number Type
     number: Number
     number_tooltip: |
         <p>Telephone number for the contact person.</p>
@@ -754,6 +768,7 @@ en:
     levels: Levels
 
   instance: &instance_attributes
+    is_representative: Is Representative? 
     instance_type: Type
     instance_type_tooltip: |
         <p>A designation of the manifestation for the described materials. The instance designation is optional, but required to open and complete a container record for the material described.</p>
@@ -825,6 +840,8 @@ en:
         <li>SHA-256</li>
         </ul>
     identifier: Identifier
+    caption: Caption
+    is_representative: Representative
 
   extent: &extent_attributes
     portion: Portion
@@ -918,6 +935,13 @@ en:
     document_link: Document Link
     _plural: External Documents
     _singular: External Document
+
+  external_id:
+    _plural: External IDs
+    _singular: External ID
+    source: Source
+    external_id: External ID
+
 
   rights_statement: &rights_statement_attributes
     identifier: Identifier
@@ -1086,8 +1110,8 @@ en:
 
   accession:
     <<: *section_tooltips
-    user_defined: 
-      <<: *user_defined_attributes 
+    user_defined:
+      <<: *user_defined_attributes
     accession_date: Accession Date
     accession_date_inline_help: e.g. YYYY-MM-DD
     accession_date_tooltip: |
@@ -1394,14 +1418,18 @@ en:
       manage_vocabulary_record: create/update/delete vocabulary records
       import_records: initiate import jobs
       cancel_importer_job: cancel an import job
+      update_container_record: create/update top container records
+      manage_container_record: delete/bulk update top container records
+      manage_container_profile_record: create/update/delete container profile records
+      manage_location_profile_record: create/update/delete location profile records
     _singular: Group
     _plural: Groups
 
   resource:
     <<: *archival_object_attributes
     <<: *section_tooltips
-    user_defined: 
-      <<: *user_defined_attributes 
+    user_defined:
+      <<: *user_defined_attributes
     id_0: Identifier
     id_1: Identifier 2
     id_2: Identifier 3
@@ -1681,7 +1709,7 @@ en:
     processing_hours_total: Total Processing Hours
     processing_hours_total_short: Total hours
     processing_hours_total_tooltip: |
-        <p>The numerical result of multiplying "Processing hours per foot estimate" by "Processing total extent"</p>
+        <p>The numerical result of multiplying "Processing hours per foot estimate" by "Processing total extent". The value can be overwritten to reflect the actual processing time and not a value based on the estimated processing hrs/unit value.</p>
     processing_plan: Processing Plan
     processing_plan_tooltip: |
         <p>For recording a plan for processing of the archival unit. The plan may include an outline of the arrangement for the archival unit, as well as instructions for how to treat particular objects in the archival unit.  The plan might also specify different assignments for different repository staff.</p>
@@ -1816,6 +1844,7 @@ en:
     digital_object_browse_column_4_tooltip: The field to show in column 4.
     digital_object_browse_column_5: Column 5
     digital_object_browse_column_5_tooltip: The field to show in column 5.
+    note_order_section: Note Order
     accept_default_message: '> Accept Default:'
     no_value: '[no value]'
     _singular: Defaults
@@ -1824,10 +1853,21 @@ en:
   reports:
     CreatedAccessionsReport: Created Accessions
     UnprocessedAccessionsReport: Unprocessed Accessions
+    LocationHoldingsReport: Location Holdings
+    location_holdings:
+      report_title: Report on containers shelved at one or more locations
+      repository_report_type: Repository
+      building_report_type: Building
+      single_location_report_type: Single Location
+      location_range_report_type: Range of Locations
+      search_range: Report on a range of locations
+      start_range: First location
+      end_range: Last location
     parameters:
       from: From
       from_tooltip:
       to: To
+      locations: Locations
     formats:
       json: JSON
       csv: CSV
@@ -1844,7 +1884,7 @@ en:
     is_required_unless_a_begin_or_end_date_is_given: is required unless a begin or end date is given
     is_required_unless_an_expression_or_an_end_date_is_given: is required unless an expression or an end date is given
     is_required_unless_an_expression_or_a_begin_date_is_given: is required unless an expression or a begin date is given
-
+    subject_must_be_unique: Subject records cannot be identical
     did_not_match_regular_expression: Did not match regular expression %{regexp}
     too_few_characters: Must be at least %{min_length} characters
     too_many_characters: Must be %{max_length} characters or fewer
@@ -1870,7 +1910,18 @@ en:
     cannot_be_previous_if_location_is_not_temporary: Cannot transfer to previous if the location is not temporary.
     authority_id_must_be_unique: Authority ID is already in use
     either_type_1_or_barcode_is_required: A container must contain Container 1 Type or Barcode.
-    must_be_a_number_with_no_more_than_nine_digits_and_five_decimal_places: Must be a number with no more than nine digits and five decimal places. 
+    must_be_a_number_with_no_more_than_nine_digits_and_five_decimal_places: Must be a number with no more than nine digits and five decimal places.
+    container_2_requires_both_a_type_and_indicator: You must provide an Indicator if you provide a Type
+    container_3_requires_both_a_type_and_indicator: You must provide an Indicator if you provide a Type
+    container_2_is_required_if_container_3_is_provided: You must provide a Child Container if you provide a Grandchild Container
+    a_barcode_must_be_unique_within_a_repository: A barcode must be unique within a repository
+    container_profile_name_not_unique: Container Profile name must be unique
+    must_be_a_number_with_no_more_than_2_decimal_places: Must be a number with no more than 2 decimal places
+    length_must_be_within_the_range_set_in_configuration: Length must be within the range set in configuration
+    is_required_if_status_is_previous: is required if 'Status' is 'Previous'
+    location_profile_name_not_unique: Location Profile name must be unique
+    must_be_a_positive_integer: Must be a positive integer
+
   job:
     _singular: Background Job
     _plural: Background Jobs
@@ -1885,6 +1936,11 @@ en:
     time_started: Time Started
     time_finished: Time Completed
     owner: Owner
+    import_type: Import Type
+    import_type: Import Type
+    find_and_replace_job: Find and Replace Job
+    print_to_pdf_job: Print to PDF
+    show_description: Show Description
 
   import_job:
     _singular: Import Job
@@ -1906,6 +1962,9 @@ en:
     record_type: Record or subrecord type
     property: Target property
 
+  print_to_pdf_job:
+    include_unpublished: Include Unpublished
+
   advanced_search:
     type:
       text: Text
@@ -1918,6 +1977,7 @@ en:
       creators: Creator
       notes: Notes
       subjects: Subject
+      identifier: Identifier 
     boolean:
       published: Published?
       suppressed: Suppressed?

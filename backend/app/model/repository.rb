@@ -95,11 +95,11 @@ class Repository < Sequel::Model(:repository)
 
 
   def delete
-    
-    [ ClassificationTerm,  Classification, Event,   ArchivalObject, 
-      Resource, DigitalObjectComponent, DigitalObject, Accession,  Group, 
-      Preference, Job ].each do |klass|
-        klass.send(:filter, :repo_id => self.id).destroy
+   
+    # this is very expensive...probably need to come up with something
+    # better...
+    [ Classification, Event, Resource, DigitalObject, Accession ].each do |klass|
+      klass.send(:filter, :repo_id => self.id ).destroy
     end
 
     super
@@ -121,6 +121,7 @@ class Repository < Sequel::Model(:repository)
     jsons = super
 
     jsons.zip(objs).each do |json, obj|
+      json['display_string'] = obj.display_string
       if (agent_id = obj.agent_representation_id)
         json["agent_representation"] = {
           "ref" => JSONModel(:agent_corporate_entity).uri_for(agent_id)
@@ -129,6 +130,11 @@ class Repository < Sequel::Model(:repository)
     end
 
     jsons
+  end
+
+
+  def display_string
+    "#{name} (#{repo_code})"
   end
 
 end

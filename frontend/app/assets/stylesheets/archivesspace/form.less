@@ -5,6 +5,26 @@
   }
 }
 
+.form-context .form-overlay {
+  opacity: 0.2;
+
+}
+
+#archives_form_overlay {
+  .unlock-notice {
+    position: absolute;
+    top: 10%;
+    width: 98%;
+    z-index: 101;
+    text-align: center;
+    left: 2%;
+  }
+  .form-overlay {
+    z-index: 100;
+    margin-left: 15px;
+  }
+}
+
 fieldset {
   width: 100%;
 }
@@ -314,6 +334,7 @@ form #terms .subrecord-form-fields {
   padding: 10px;
 }
 
+
 ul.subrecord-form-list {
   margin: 0;
   -webkit-padding-start: 0;
@@ -505,15 +526,6 @@ ul.subrecord-form-list {
   clear: both;
 }
 
-#reportListing {
-  .panel-heading {
-    #gradient > .vertical(#F3F3F3, #EDEDED);
-  }
-  .accordion-inner {
-    padding: 20px;
-  }
-}
-
 .group-member-control-group {
   .member-toolbar {
     float: left;
@@ -606,6 +618,7 @@ ul.subrecord-form-list {
 
 .help-inline {
   color: #888;
+  white-space: nowrap;
 }
 
 
@@ -669,7 +682,7 @@ label {
   fieldset {
     width: 300px;
     padding: 10px;
-    #template { display:none;  } 
+    #template { display:none;  }
   }
   .form-actions {
     margin: 0;
@@ -729,7 +742,8 @@ label {
 
 // Name form styles
 .is-authoritive-label,
-.is-display-name-label {
+.is-display-name-label,
+.is-representative-label {
   display: none;
 }
 .authoritive-name {
@@ -749,10 +763,18 @@ label {
   }
 }
 
+.is-representative {
+  .is-representative-label {
+    display: inline;
+  }
+  .is-representative-toggle {
+    display: none;
+  }
+}
+
 // four part id controls
 .form-group {
   .id_0, .id_1, .id_2, .id_3 {
     display: inline;
   }
 }
-

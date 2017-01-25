@@ -5,9 +5,20 @@ class ClassificationsController < ApplicationController
                       "delete_classification_record" => [:delete],
                       "manage_repository" => [:defaults, :update_defaults]
 
+  include ExportHelper
 
   def index
-    @search_data = Search.for_type(session[:repo_id], "classification", params_for_backend_search.merge({"facet[]" => SearchResultData.CLASSIFICATION_FACETS}))
+    respond_to do |format| 
+      format.html {   
+        @search_data = Search.for_type(session[:repo_id], "classification", params_for_backend_search.merge({"facet[]" => SearchResultData.CLASSIFICATION_FACETS}))
+      }
+      format.csv { 
+        search_params = params_for_backend_search.merge({"facet[]" => SearchResultData.CLASSIFICATION_FACETS})
+        search_params["type[]"] = "classification" 
+        uri = "/repositories/#{session[:repo_id]}/search"
+        csv_response( uri, search_params )
+      }  
+    end 
   end
 
   def show
@@ -137,8 +148,12 @@ class ClassificationsController < ApplicationController
     flash.keep
 
     tree = []
+    limit_to = if  params[:node_uri] && !params[:node_uri].include?("/classifications/") 
+                 params[:node_uri]
+               else
+                 "root"
+               end
 
-    limit_to = params[:node_uri] || "root"
 
     if !params[:hash].blank?
       node_id = params[:hash].sub("tree::", "").sub("#", "")

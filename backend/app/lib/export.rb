@@ -13,7 +13,7 @@ module ExportHelpers
   def generate_pdf_from_ead( ead )
     xml = ""
     ead.each { |e| xml << e  }
-    ASFop.new(xml).to_pdf_stream
+    ASFop.new(xml).to_pdf
   end
 
   def xml_response(xml)
@@ -21,8 +21,8 @@ module ExportHelpers
   end
 
 
-  def stream_response(streamer)
-    [status, {"Content-Type" => "application/xml"}, streamer]
+  def stream_response(streamer, content_type = "application/xml")
+    [status, {"Content-Type" => content_type}, streamer]
   end
 
 

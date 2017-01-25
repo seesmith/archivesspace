@@ -13,6 +13,16 @@ describe 'Agent model' do
   end
 
 
+  it "doesn't have a leading whitespace in the sort name" do
+
+    n1 = build(:json_name_person, :rest_of_name => nil)
+
+    agent = AgentPerson.create_from_json(build(:json_agent_person, :names => [n1]))
+
+    AgentPerson[agent[:id]].name_person.first[:sort_name].should match(Regexp.new("^#{n1.primary_name}.*"))
+  end
+
+
   it "allows agents to have a linked contact details" do
 
     c1 = build(:json_agent_contact)
@@ -39,7 +49,7 @@ describe 'Agent model' do
 
 
   it "for unauthorized names, no requirement for source or rules" do
-    expect { n1 = build(:json_name_person, :rules => nil, :source => nil, :authorized => false).to_hash }.to_not raise_error
+    expect { n1 = build(:json_name_person, :rules => nil, :source => nil, :authorized => false, :authority_id => nil).to_hash }.to_not raise_error
   end
 
 
@@ -65,7 +75,7 @@ describe 'Agent model' do
                 }
               )
 
-    expect { n1.to_hash }.to_not raise_error(JSONModel::ValidationException)
+    expect { n1.to_hash }.to_not raise_error
 
     agent = AgentPerson.create_from_json(build(:json_agent_person, :names => [n1]))
 
@@ -81,9 +91,9 @@ describe 'Agent model' do
   it "truncates an auto-generated sort name of more than 255 chars" do
     name = build(:json_name_person,
                  :primary_name => (0..200).map{ rand(3)==1?rand(10):(65 + rand(25)).chr }.join,
-                 :rest_of_name => (0..200).map{ rand(3)==1?rand(10):(65 + rand(25)).chr }.join 
+                 :rest_of_name => (0..200).map{ rand(3)==1?rand(10):(65 + rand(25)).chr }.join
                  )
-    
+
     agent = AgentPerson.create_from_json(build(:json_agent_person, :names => [name]))
     JSONModel(:agent_person).find(agent[:id]).names[0]['sort_name'].length.should eq(255)
   end
@@ -239,11 +249,11 @@ describe 'Agent model' do
                      :names => [build(:json_name_person,
                      'authority_id' => 'thesame'
                      )])
-   
+
     a1 =    AgentPerson.create_from_json(json)
     a2 =    AgentPerson.ensure_exists(json2, nil)
-    
-    a1.should eq(a2) # the names should still be the same as the first authority_id names 
+
+    a1.should eq(a2) # the names should still be the same as the first authority_id names
   end
 
 
@@ -256,7 +266,7 @@ describe 'Agent model' do
                                                           build(:json_name_person,
                                                                 'authorized' => true,
                                                                 'is_display_name' => false)]))
-    
+
     AgentPerson.to_jsonmodel(agent.id).display_name['primary_name'].should eq(display_name['primary_name'])
   end
 
@@ -322,15 +332,15 @@ describe 'Agent model' do
 
     let(:agent) {
       build(:json_agent_person,
-            :names => [build(:json_name_person), 
-                       build(:json_name_person)],
+            :names => [build(:json_name_person, :authority_id => nil),
+                       build(:json_name_person, :authority_id => nil)],
             :agent_contacts => [build(:json_agent_contact)],
             :external_documents => [build(:json_external_document)],
             :notes => [build(:json_note_bioghist)]
             )
     }
 
-    before(:each) do 
+    before(:each) do
       @agent_obj = AgentPerson.create_from_json(agent)
     end
 

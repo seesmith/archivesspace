@@ -16,8 +16,6 @@ class Solr
   end
 
 
-
-
   class Query
 
     def self.create_match_all_query
@@ -79,7 +77,7 @@ class Solr
     end
 
 
-    def initialize(query_string)
+    def initialize(query_string, opts = {})
       @solr_url = URI.parse(AppConfig[:solr_url])
 
       @query_string = query_string
@@ -88,11 +86,17 @@ class Solr
       @pagination = nil
       @solr_params = []
       @facet_fields = []
+      @highlighting = false
 
       @show_suppressed = false
       @show_published_only = false
+      
+      @csv_header = true
     end
 
+    def remove_csv_header
+      @csv_header = false
+    end
 
     def set_solr_url(solr_url)
       @solr_url = solr_url
@@ -102,6 +106,12 @@ class Solr
 
     def use_standard_query_type
       @query_type = :standard
+      self
+    end
+
+
+    def highlighting(yes_please = true)
+      @highlighting = yes_please
       self
     end
 
@@ -220,6 +230,9 @@ class Solr
       @writer_type = type
     end
 
+    def get_writer_type
+      @writer_type
+    end
 
     def to_solr_url
       raise "Missing pagination settings" unless @pagination
@@ -230,6 +243,14 @@ class Solr
 
       if @show_published_only
         add_solr_param(:fq, "publish:true")
+      end
+
+
+      if @highlighting
+        add_solr_param(:hl, "true")
+        if @query_type == :standard
+          add_solr_param(:"hl.fl", "*")
+        end
       end
 
       unless @show_suppressed
@@ -257,10 +278,12 @@ class Solr
       url.path += "/select"
       url.query = URI.encode_www_form([[:q, @query_string],
                                        [:wt, @writer_type],
+                                       ["csv.escape", '\\'], 
+                                       ["csv.encapsulator", '"'], 
+                                       ["csv.header", @csv_header ],
                                        [:start, (@pagination[:page] - 1) * @pagination[:page_size]],
                                        [:rows, @pagination[:page_size]]] +
                                       @solr_params)
-
 
       url
     end
@@ -287,12 +310,14 @@ class Solr
       solr_response = http.request(req)
 
       if solr_response.code == '200'
+        return solr_response.body unless query.get_writer_type == "json" 
         json = ASUtils.json_parse(solr_response.body)
 
         result = {}
 
         page_size = query.page_size
 
+        result['page_size'] = page_size
         result['first_page'] = 1
         result['last_page'] = (json['response']['numFound'] / page_size.to_f).ceil
         result['this_page'] = (json['response']['start'] / page_size) + 1
@@ -308,6 +333,10 @@ class Solr
         }
 
         result['facets'] = json['facet_counts']
+
+        if json['highlighting']
+          result['highlighting'] = json['highlighting']
+        end
 
         return result
       else

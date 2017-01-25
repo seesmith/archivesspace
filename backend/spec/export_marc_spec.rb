@@ -339,10 +339,8 @@ describe 'MARC Export' do
       df.sf_t('b').should eq(repo.name)
       df.sf_t('c').should eq((0..3).map{|i| @resource1.send("id_#{i}")}.compact.join('.'))
     end
-
-
-
   end
+
 
   describe 'linked agent mappings' do
     before(:all) do
@@ -538,8 +536,8 @@ describe 'MARC Export' do
     end
 
 
-    it "maps notes of type 'prefercite' to df 534 ('8', ' '), sf a" do
-      note_test(@resource, @marc, %w(prefercite), ['534', '8', ' '], 'a')
+    it "maps notes of type 'prefercite' to df 524 ('8', ' '), sf a" do
+      note_test(@resource, @marc, %w(prefercite), ['524', '8', ' '], 'a')
     end
 
 
@@ -615,5 +613,26 @@ describe 'MARC Export' do
     end
 
   end
+
+
+  describe "https://archivesspace.atlassian.net/browse/AR-973" do
+    # Note: I'm unclear what this issue actually means
+
+    before(:all) do
+      @resource = create(:json_resource)
+      @marc = get_marc(@resource)
+    end
+
+    after(:all) do
+      @resource.delete
+    end
+
+
+    it "maps resource language code to 040$b and 049$a" do
+      @marc.at("datafield[@tag='040'][@ind1='0'][@ind2=' ']/subfield[@code='b']").should have_inner_text(@resource.language)
+      @marc.at("datafield[@tag='049'][@ind1='0'][@ind2=' ']/subfield[@code='a']").should have_inner_text(@resource.language)
+    end
+  end
+
 
 end

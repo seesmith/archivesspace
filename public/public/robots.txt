@@ -1,5 +1,112 @@
 # See http://www.robotstxt.org/wc/norobots.html for documentation on how to use the robots.txt file
 #
-# To ban all spiders from the entire site uncomment the next two lines:
-# User-Agent: *
-# Disallow: /
+#Baiduspider
+User-agent: Baiduspider
+Disallow: /
+
+#Yandex
+User-agent: Yandex
+Disallow: /
+
+#Google
+User-agent: Googlebot-Image
+Disallow: /luna/servlet/groups/export/
+Disallow: /luna/servlet/detail/export/
+Disallow: /luna/servlet/groups/export
+Disallow: /luna/servlet/detail/export
+Disallow: /*export?mid=
+Disallow: /luna/servlet/login
+Disallow: /luna/servlet/login/*
+Disallow: /luna/servlet/rss
+Disallow: /luna/servlet/rss/*
+Disallow: /luna/servlet/s/
+Disallow: /luna/servlet/view/all/what
+Disallow: /luna/servlet/view/all/what/*
+Disallow: /luna/servlet/view/all/who
+Disallow: /luna/servlet/view/all/who/*
+Disallow: /luna/servlet/view/all/where
+Disallow: /luna/servlet/view/all/where/*
+Disallow: /luna/servlet/view/all/when
+Disallow: /luna/servlet/view/all/when/*
+Disallow: /luna/servlet/view/search
+Disallow: /luna/servlet/view/search*
+Disallow: /luna/servlet/widget
+Disallow: /luna/servlet/widget*
+Disallow: /luna/servlet/as
+Disallow: /luna/servlet/as*
+Disallow: /luna/servlet/as/
+Disallow: /luna/servlet/as/*
+Disallow: /luna/servlet/annotation/
+Disallow: /luna/servlet/annotation/*
+Disallow: /luna/servlet/search
+Disallow: /luna/servlet/view/collapseState
+Disallow: /luna/servlet/search*
+Crawl-Delay: 50
+
+User-agent: Googlebot
+Disallow: /luna/servlet/groups/export/
+Disallow: /luna/servlet/detail/export/
+Disallow: /luna/servlet/groups/export
+Disallow: /luna/servlet/detail/export
+Disallow: /*export?mid=
+Disallow: /luna/servlet/login
+Disallow: /luna/servlet/login/*
+Disallow: /luna/servlet/rss
+Disallow: /luna/servlet/rss/*
+Disallow: /luna/servlet/s/
+Disallow: /luna/servlet/view/all/what
+Disallow: /luna/servlet/view/all/what/*
+Disallow: /luna/servlet/view/all/who
+Disallow: /luna/servlet/view/all/who/*
+Disallow: /luna/servlet/view/all/where
+Disallow: /luna/servlet/view/all/where/*
+Disallow: /luna/servlet/view/all/when
+Disallow: /luna/servlet/view/all/when/*
+Disallow: /luna/servlet/view/search
+Disallow: /luna/servlet/view/search*
+Disallow: /luna/servlet/widget
+Disallow: /luna/servlet/widget*
+Disallow: /luna/servlet/as
+Disallow: /luna/servlet/as*
+Disallow: /luna/servlet/as/
+Disallow: /luna/servlet/as/*
+Disallow: /luna/servlet/annotation/
+Disallow: /luna/servlet/annotation/*
+Disallow: /luna/servlet/search
+Disallow: /luna/servlet/view/collapseState
+Disallow: /luna/servlet/search*
+Crawl-Delay: 50
+
+User-agent: *
+Disallow: /luna/servlet/groups/export/
+Disallow: /luna/servlet/detail/export/
+Disallow: /luna/servlet/groups/export
+Disallow: /luna/servlet/detail/export
+Disallow: /*export?mid=
+Disallow: /luna/servlet/login
+Disallow: /luna/servlet/login/*
+Disallow: /luna/servlet/rss
+Disallow: /luna/servlet/rss/*
+Disallow: /luna/servlet/s/
+Disallow: /luna/servlet/view/all/what
+Disallow: /luna/servlet/view/all/what/*
+Disallow: /luna/servlet/view/all/who
+Disallow: /luna/servlet/view/all/who/*
+Disallow: /luna/servlet/view/all/where
+Disallow: /luna/servlet/view/all/where/*
+Disallow: /luna/servlet/view/all/when
+Disallow: /luna/servlet/view/all/when/*
+Disallow: /luna/servlet/view/search
+Disallow: /luna/servlet/view/search*
+Disallow: /luna/servlet/widget
+Disallow: /luna/servlet/widget*
+Disallow: /luna/servlet/as
+Disallow: /luna/servlet/as*
+Disallow: /luna/servlet/as/
+Disallow: /luna/servlet/as/*
+Disallow: /luna/servlet/annotation/
+Disallow: /luna/servlet/annotation/*
+Disallow: /luna/servlet/search
+Disallow: /luna/servlet/view/collapseState
+Disallow: /luna/servlet/search*
+Crawl-Delay: 500

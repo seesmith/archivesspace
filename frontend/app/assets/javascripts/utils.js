@@ -1,7 +1,6 @@
 //= require trimpath-template-1.0.38
 //= require bootstrap-datepicker
 //= require bootstrap-combobox
-//= require jquery.hotkeys
 
 var AS = {};
 
@@ -70,20 +69,13 @@ $(function() {
 
 // sidebar action
 $(function() {
-  var getSubMenuHTML = function() {
-    return $("<ul class='nav-list-submenu'></ul>");
-  };
-
-  var getSubMenuItemHTML = function(anItem) {
-    var $li = $("<li>");
-    var $link = $("<a>");
-    $link.addClass("nav-list-submenu-link");
-    $link.attr("href", "javascript:void(0);");
-    if ($(".error", anItem).length > 0) {
-      $link.addClass("has-errors");
-    }
-    $li.append($link);
-    return $li;
+  
+  var getSubMenuHTML = function(numberOfRecords) {
+    if ( numberOfRecords < 1 ) { 
+      return ''; 
+    } else {
+      return  $("<span class='nav-list-record-count badge'>" + numberOfRecords + "</span>") 
+     }
   };
 
   var refreshSidebarSubMenus = function() {
@@ -92,39 +84,20 @@ $(function() {
       // show the sub record bits
       return;
     }
-    $(".nav-list-submenu").remove();
+    $(".nav-list-record-count").remove();
     $("#archivesSpaceSidebar .as-nav-list > li").each(function() {
       var $nav = $(this);
       var $link = $("a", $nav);
       var $section = $($link.attr("href"));
       var $items = $(".subrecord-form-list:first > li", $section);
 
-      var $submenu = getSubMenuHTML();
-      for (var i=0; i<$items.length; i++) {
-        $submenu.append(getSubMenuItemHTML($items[i]));
-      }
+      var $submenu = getSubMenuHTML($items.length);
       $link.append($submenu);
-    });
-  };
-
-  var bindSidebarEvents = function() {
-    $("#archivesSpaceSidebar .as-nav-list").on("click", "> li > a", function(event) {
-      event.preventDefault();
-
-      var $target_item = $(this);
-      $.scrollTo($target_item.attr("href"), 1000, {
-        onAfter: function() {
-         $(".active", "#archivesSpaceSidebar").removeClass("active");
-          var $active = $target_item.parents("li:first");
-          $active.addClass("active");
-        }
-      });
     });
   };
 
    var initSidebar = function() {
     $("#archivesSpaceSidebar .as-nav-list:not(.initialised)").each(function() {
-      $.proxy(bindSidebarEvents, this)();
       $(this).affix({
         offset: {
           top: function() {
@@ -132,22 +105,6 @@ $(function() {
           },
           bottom: 100
         }
-      });
-
-      $(this).on("click", ".nav-list-submenu-link", function(event) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
-        var $this = $(this);
-
-        var $section = $($this.parent().closest("a").attr("href"));
-        var $target = $($(".subrecord-form-list:first > li", $section)[$this.parent().index()]);
-        $.scrollTo($target, 1000, {
-          onAfter: function() {
-            $(".active", "#archivesSpaceSidebar").removeClass("active");
-            $this.parent().parent().closest("li").addClass("active");
-          }
-        });
       });
 
       $(this).addClass("initialised");
@@ -237,7 +194,7 @@ $(function() {
   var initPopovers = function(scope) {
     scope = scope || $(document.body);
     $(".has-popover:not(.initialised)", scope)
-      .popover(popoverOptions) 
+      .popover(popoverOptions)
       .click(function(e) {
         e.preventDefault();
       }).addClass("initialised");
@@ -316,6 +273,15 @@ $(function() {
   });
   $(document).bind("subrecordcreated.aspace", function(event, object_name, subform) {
     initTooltips(subform);
+  });
+
+  $(document).bind("shown.bs.modal", function(events) {
+    $(".modal-content").delegate($(".has-tooltip"), "mouseenter", function() {
+      initTooltips($( this ));
+      $("a.has-tooltip", $( this )).on("click", function() {
+        window.open($( this ).attr('href'));
+      });
+    });
   });
 });
 
@@ -400,7 +366,7 @@ AS.openCustomModal = function(id, title, contents, modalSize, modalOpts, initiat
   var templateData = {
     id:id,
     title:title,
-    content: "", 
+    content: "",
   }
 
   // phase out the class on .modal in favor of .modal-dialog
@@ -414,7 +380,7 @@ AS.openCustomModal = function(id, title, contents, modalSize, modalOpts, initiat
     templateData.fill = modalSize;
     templateData.dialogClass = false;
   }
- 
+
   $("body").append(AS.renderTemplate("modal_custom_template", templateData));
   var $modal = $("#"+id);
   $modal.find('.modal-content').append(contents);
@@ -454,6 +420,8 @@ AS.openCustomModal = function(id, title, contents, modalSize, modalOpts, initiat
   $modal.attr("tabindex", 0).focus();
 
   $modal.modal('show');
+
+  $(".linker:not(.initialised)", $modal).linker();
 
   return $modal;
 };
@@ -578,7 +546,7 @@ AS.initAddAsYouGoActions = function($form, $list) {
     }
 
     var btnsToReplicate =  $(".subrecord-form-heading:first > .btn, .subrecord-form-heading:first > .custom-action > .btn", $form)
-    btnsToReplicate = btnsToReplicate.map( function() { 
+    btnsToReplicate = btnsToReplicate.map( function() {
         var $btn = $(this);
         if ( $btn.hasClass('show-all') && numberOfSubRecords() < 5   )
           return;
@@ -590,7 +558,7 @@ AS.initAddAsYouGoActions = function($form, $list) {
 
     btnsToReplicate.each(function() {
       var $btn = $(this);
-      
+
       var $a = $("<a href='#'>+</a>");
       var btnText = $btn.val().length ? $btn.val() : $btn.text();
       $a.css("width", Math.floor(fillToPercentage / btnsToReplicate.length) + "%");
@@ -672,8 +640,6 @@ AS.prefixed_cookie = function(cookie_name, value) {
     args[0] = COOKIE_PREFIX + '_' + args[0];
     return $.cookie.apply(this, args);
 };
-
-
 
 
 // Sub Record Sorting
@@ -856,20 +822,11 @@ $(function() {
 
   };
 
-  $(document).bind('formchanged.aspace', function(event) {
-    var $form = $('form.aspace-record-form');
-    if ($form.data("form_changed")) {
-      $(document).bind('keydown', 'ctrl+s', function() {
-        $form.submit()
-      });
-    }
-  })
-
   $(document).bind('keydown', 'shift+/', function() {
     if (!$('#ASModal').length) {
       AS.openAjaxModal(APP_PATH + "shortcuts");
     }
-    
+
   });
 
   $(document).bind('keydown', 'esc', function() {
@@ -883,12 +840,23 @@ $(function() {
   });
 
   $(document).bind('keydown', 'shift+b', function() {
-    $('li.browse-container a.dropdown-toggle').trigger('click.bs.dropdown'); 
+    $('li.browse-container a.dropdown-toggle').trigger('click.bs.dropdown');
   });
 
   $(document).bind('keydown', 'shift+c', function() {
-    $('li.create-container a.dropdown-toggle').trigger('click.bs.dropdown'); 
+    $('li.create-container a.dropdown-toggle').trigger('click.bs.dropdown');
   });
+
+  $(window).bind('keydown', function(event) {
+    if (event.ctrlKey || event.metaKey) {
+      switch (String.fromCharCode(event.which).toLowerCase()) {
+      case 's':
+        event.preventDefault();
+        console.log('ctrl-s');
+        break;
+      }
+    }
+});
 
   var traverseMenuDown = function() {
     var $current = $(this).find('ul li.active');
@@ -897,7 +865,7 @@ $(function() {
     if ($next.length){
       $next.addClass('active');
       $current.removeClass('active');
-    }  
+    }
   };
 
   var traverseMenuUp = function() {
@@ -907,7 +875,7 @@ $(function() {
     if ($next.length){
       $next.addClass('active');
       $current.removeClass('active');
-    }  
+    }
   };
 
   var clickActive = function(e) {
@@ -932,5 +900,5 @@ $(function() {
       $(this).unbind('keydown', clickActive);
     }
   });
-    
+
 });

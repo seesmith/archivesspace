@@ -14,7 +14,7 @@ describe 'Event model' do
     
     expect {
       create(:json_event)
-    }.to_not raise_error(JSONModel::ValidationException)
+    }.to_not raise_error
     
   end
 
@@ -30,7 +30,7 @@ describe 'Event model' do
     
     expect {
       create(:json_event, opts)
-    }.to_not raise_error(JSONModel::ValidationException)   
+    }.to_not raise_error
 
   end
 
@@ -69,8 +69,7 @@ describe 'Event model' do
     json = Accession.to_jsonmodel(accession.id)
 
     resolved = URIResolver.resolve_references(json,
-                                              ["linked_events", "linked_events::linked_records"],
-                                              {})
+                                              ["linked_events", "linked_events::linked_records"])
 
 
     resolved['linked_events'][0]['_resolved']['outcome_note'].should eq('testing')

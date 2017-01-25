@@ -3,20 +3,29 @@ ArchivesSpace README
 
 [![Build Status](https://travis-ci.org/archivesspace/archivesspace.svg)](https://travis-ci.org/archivesspace/archivesspace.svg)[![Code Climate](https://codeclimate.com/github/archivesspace/archivesspace.png)](https://codeclimate.com/github/archivesspace/archivesspace)
 
-<http://archivesspace.org>
-[Wiki and Issue Tracker](https://archivesspace.atlassian.net)
-IRC: #archivesspace ( chat.freenode.net )
+
+* [archivesspace.org](http://archivesspace.org)
+* [User Documentation](https://docs.archivesspace.org/)
+* [Technical Documentation](http://archivesspace.github.io/archivesspace/)
+* [API](http://archivesspace.github.io/archivesspace/api)
+* [Wiki](http://wiki.archivesspace.org)
+* [Issue Tracker](http://development.archivesspace.org)
+* IRC: #archivesspace ( chat.freenode.net )
 
 # System requirements
 
-* Java 1.6 or higher; Java 1.7 recommended. Currently,  Java 1.8 requires removal of Jasper libraries from the Java classpath. 
+* Java 1.6 or higher; Java 1.7 or 1.8 recommended.
 * At least 1024 MB RAM allocated to the application
-* A [supported browser](https://github.com/archivesspace/archivesspace/wiki/Supported-browsers)
+* A [supported browser](https://archivesspace.atlassian.net/wiki/display/ADC/Supported+Browsers)
 
 ArchivesSpace has been tested on Linux (Red Hat and Ubuntu), Mac OS X, and
 Windows (XP, Windows 7, Windows 8, Windows Server 2008 & 2012 ).
 
 MySQL is not required, but is **strongly** recommended for production use.
+
+**The embedded database is for testing purposes only. You should use MySQL for
+any data intended for production, including data in a test instance that you
+intend to move over to a production instance.**
 
 # Getting started
 
@@ -30,10 +39,12 @@ You can check your Java version by running the command:
 
      java -version
 
+<!-- I think the caution about Java 1.8 is no longer relevant per messages from Chris in 2015. -- Christine
 Currently, if you want to use Java 1.8, you will need to remove the
 jdt-compiler jar library from the java classpath ( lib directory of
 your ArchivesSpace directory). This will disable the use of Jasper
 reports ( but not regular reports).  
+--->
 
 When you extract the `.zip` file, it will create a directory called
 `archivesspace`.  To run the system, just execute the appropriate
@@ -56,11 +67,19 @@ written to the file `logs/archivesspace.out` (by default).
 make sure that there are no spaces in any part of the path name in which the
 ArchivesSpace directory is located.
 
-The first time it starts, the system will take a minute or so to start
-up.  Once it is ready, you should be able to point your browser to
-http://localhost:8080/ and access the ArchivesSpace staff interface.
+## Start ArchivesSpace
 
-To start using the application, log in using the adminstrator account:
+The first time it starts, the system will take a minute or so to start
+up.  Once it is ready, confirm that ArchivesSpace is running correctly by 
+accessing the following URLs in your browser:
+
+  - http://localhost:8089/ -- the backend
+  - http://localhost:8080/ -- the staff interface
+  - http://localhost:8081/ -- the public interface
+  - http://localhost:8090/ -- the Solr admin console
+
+To start using the Staff interface application, log in using the adminstrator 
+account:
 
 * Username: `admin`
 * Password: `admin`
@@ -109,10 +128,6 @@ that the system runs under, JVM options, and so on.
 
 Running ArchivesSpace as a Windows service requires some additional 
 configuration. 
-
-A popular method is to use Tomcat, which ships with a script that 
-configures Tomcat as a service. For more information, please see :
-[Instructions for running under Tomcat](https://github.com/archivesspace/archivesspace/blob/master/README_TOMCAT.md).
 
 You can also use Apache [procrun]((http://commons.apache.org/proper/commons-daemon/procrun.html) to configure ArchivesSpace. We have 
 provided a service.bat script that will attempt to configure 
@@ -193,7 +208,7 @@ Download the Connector and place it in a location where ArchivesSpace can
 find it on its classpath:
 
          $ cd lib
-         $ curl -Oq http://central.maven.org/maven2/mysql/mysql-connector-java/5.1.34/mysql-connector-java-5.1.34.jar 
+         $ curl -Oq http://central.maven.org/maven2/mysql/mysql-connector-java/5.1.39/mysql-connector-java-5.1.39.jar 
 
 Note that the version of the MySQL connector may be different by the
 time you read this.
@@ -209,6 +224,9 @@ and password `as123`.
 ENCODING FOR THE DATABASE TO BE `utf8`.** This is particularly important
 if you use a MySQL client to create the database (e.g. Navicat, MySQL
 Workbench, phpMyAdmin, etc.).
+
+**NOTE: If using AWS RDS MySQL databases, binary logging is not enabled by default and updates will fail.** To enable binary logging, you must create a custom db parameter group for the database and set the `log_bin_trust_function_creators = 1`. See [Working with DB Parameter Groups](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithParamGroups.html) for information about RDS parameter groups.
+
 
          $ mysql -uroot -p
 
@@ -230,18 +248,8 @@ ArchivesSpace requires.  Run this with:
 
     scripts/setup-database.sh  # or setup-database.bat under Windows
 
-## Start ArchivesSpace
-
-Once your database is configured, start the application using
-`archivesspace.sh` (or `archivesspace.bat` under Windows).
-
-Confirm that ArchivesSpace is running correctly by accessing the
-following URLs in your browser:
-
-  - http://localhost:8089/ -- the backend
-  - http://localhost:8080/ -- the staff interface
-  - http://localhost:8081/ -- the public interface
-  - http://localhost:8090/ -- the Solr admin console
+You can now follow the instructions in the "Getting Started" section to start
+your ArchivesSpace application. 
 
 
 # Backup and recovery
@@ -257,7 +265,6 @@ and the script will generate a file containing:
 
   * A snapshot of the demo database (if you're using the demo
     database)
-
   * A snapshot of the Solr index and related indexer files
 
 If you are running against MySQL and have `mysqldump` installed, you
@@ -276,7 +283,9 @@ recover.
 If you are running MySQL, the `mysqldump` utility can dump the database
 schema and data to a file.  It's a good idea to run this with the
 `--single-transaction` option to avoid locking your database tables
-while your backups run.
+while your backups run. It is also essential to use the `--routines`
+flag, which will include functions and stored procedures in the
+backup (which ArchivesSpace uses at least for Jasper reports).
 
 If you are running with the demo database, you can create periodic
 database snapshots using the following configuration settings:
@@ -307,7 +316,6 @@ When recovering an ArchivesSpace installation from backup, you will
 need to restore:
 
   * Your database (either the demo database or MySQL)
-
   * The search indexes and related indexer files
 
 Of the two, the database backup is the most crucial--search indexes
@@ -355,14 +363,12 @@ ArchivesSpace indexer:
 
   * solr.backup-[timestamp]/snapshot.[timestamp] -- a snapshot of the
     index files.
-
   * solr.backup-[timestamp]/indexer_state -- the files used by the
     indexer to remember what it last indexed.
 
 To restore these directories from backup:
 
   * Copy your index snapshot to `/path/to/archivesspace/data/solr_index/index`
-
   * Copy your indexer_state backup to `/path/to/archivesspace/data/indexer_state`
 
 For example:
@@ -375,6 +381,20 @@ For example:
      cp -a /unpacked/zip/solr.backup-26475-1373323208/indexer_state \ 
            /path/to/archivesspace/data/
 
+
+### Checking your search indexes
+
+ArchivesSpace ships with a script that can run Lucene's CheckIndex
+tool for you, verifying that a given Solr index is free from
+corruption.  To test an index, run the following command from your
+`archivesspace` directory:
+
+     # Or scripts/checkindex.bat for Windows
+     scripts/checkindex.sh data/solr_index/index
+
+You can use the same script to check that your Solr backups are valid:
+
+     scripts/checkindex.sh /unpacked/zip/solr.backup-26475-1373323208/snapshot.20130709084008464
 
 
 # Re-creating indexes
@@ -469,38 +489,8 @@ appropriate and specify the `encryption` option:
 
 # Plug-ins and local customizations
 
-Under your `archivesspace` directory there is a directory called `plugins`.
-Each directory under the `plugins` directory contains a plug-in. In the
-standard distribution there are several plug-in directories, including
-`hello_world` and `local`. The `hello_world` directory contains a simple
-exemplar plug-in. The `local` directory is empty - this is a place to put
-any local customizations or extensions to ArchivesSpace without having to
-change the core codebase.
+[ Plug-ins and local customizations readme](https://github.com/archivesspace/archivesspace/blob/master/plugins/PLUGINS_README.md)
 
-Plug-ins are enabled by listing them in the configuration file. You will see the following line in
-`config/config.rb`:
-
-     # AppConfig[:plugins] = ['local']
-
-This states that by default the `local` plug-in is enabled and any files
-contained there will be loaded and available to the application. In order
-to enable other plug-ins simply override this configuration in
-`config/config.rb`. For example, to enable the `hello_world` plug-in, add
-a line like this (ensuring you remove the `#` at the beginning of the line):
-
-    AppConfig[:plugins] = ['local', 'hello_world']
-
-Note that the string must be identical to the name of the directory under the
-`plugins` directory. Also note that the ordering of plug-ins in the list
-determines the order that the plug-ins will be loaded.
-
-For more information about plug-ins and how to use them to override and
-customize ArchivesSpace, please see the README in the `plugins` directory.
-
-
-# Running ArchivesSpace under Tomcat
-
-[Instructions for running under Tomcat](https://github.com/archivesspace/archivesspace/blob/master/README_TOMCAT.md).
 
 # Running ArchivesSpace with an external Solr instance
 
@@ -514,9 +504,6 @@ customize ArchivesSpace, please see the README in the `plugins` directory.
 
 [Upgrading to a new release of ArchivesSpace](https://github.com/archivesspace/archivesspace/blob/master/UPGRADING.md)
 
-Version specific considerations:
-
-- [1.1.0](UPGRADING_1.1.0.md)
 
 # Monitoring with New Relic
 
@@ -525,18 +512,18 @@ Version specific considerations:
 # Further documentation
 
 Additional documentation can be found on the ArchivesSpace
-wiki at [https://github.com/archivesspace/archivesspace/wiki](https://github.com/archivesspace/archivesspace/wiki).
+wiki at [http://wiki.archivesspace.org](http://wiki.archivesspace.org).
 
 A document describing the architecture of ArchivesSpace is published
 at [https://github.com/archivesspace/archivesspace/blob/master/ARCHITECTURE.md](https://github.com/archivesspace/archivesspace/blob/master/ARCHITECTURE.md).
 
 The latest technical documentation, including API documentation and
 architecture notes, is published at
-[http://archivesspace.github.io/archivesspace/doc](http://archivesspace.github.com/archivesspace/doc/).
+[http://archivesspace.github.io/archivesspace/](http://archivesspace.github.io/archivesspace/).
 
 # Contributing
 
-Contributors are welcome! Please read about our [Contributor License Agreement](https://github.com/archivesspace/archivesspace/tree/master/contributing) for more information. 
+Contributors are welcome! Please read about our [Contributor License Agreements](https://github.com/archivesspace/archivesspace/tree/master/contributing) for more information. 
 
 # License
 
@@ -547,7 +534,7 @@ version 2.0](http://opensource.org/licenses/ecl2.php). See the
 
 # Credits
 
-ArchivesSpace 1.0 has been developed by [Hudson Molonglo](http://www.hudsonmolonglo.com)
+ArchivesSpace 1.0 was developed by [Hudson Molonglo](http://www.hudsonmolonglo.com)
 in partnership with the New York University Libraries, UC San Diego
 Libraries, and University of Illinois Urbana-Champaign Library and with
 funding from the Andrew W. Mellon Foundation, organizational support from

@@ -6,6 +6,12 @@ class DB
   Sequel.database_timezone = :utc
   Sequel.typecast_timezone = :utc
 
+  # When performing a query like ds.filter(:col => []), don't turn it into
+  # SELECT ... WHERE col != col.  MySQL doesn't optimize this at all and
+  # performs a full table scan.
+  Sequel.extension :empty_array_ignore_nulls
+
+
   SUPPORTED_DATABASES = [
                          {
                            :pattern => /jdbc:mysql/,
@@ -25,7 +31,7 @@ class DB
       end
 
       begin
-        Log.info("Connecting to database: #{AppConfig[:db_url]}. Max connections: #{AppConfig[:db_max_connections]}")
+        Log.info("Connecting to database: #{AppConfig[:db_url_redacted]}. Max connections: #{AppConfig[:db_max_connections]}")
         pool = Sequel.connect(AppConfig[:db_url],
                               :max_connections => AppConfig[:db_max_connections],
                               :test => true,
@@ -106,57 +112,78 @@ EOF
   end
 
 
-  def self.open(transaction = true, opts = {})
-    last_err = false
-    retries = opts[:retries] || 10
+  def self.session_storage
+    Thread.current[:db_session_storage] or raise "Not inside transaction!"
+  end
 
-    retries.times do |attempt|
-      begin
-        if transaction
-          self.transaction do
-            return yield @pool
+  def self.open(transaction = true, opts = {})
+
+    # Give us a place to hang storage that relates to the current database
+    # session.
+    Thread.current[:db_session_storage] ||= {}
+    Thread.current[:nesting_level] ||= 0
+    Thread.current[:nesting_level] += 1
+
+    begin
+      last_err = false
+      retries = opts[:retries] || 10
+
+      retries.times do |attempt|
+        begin
+          if transaction
+            self.transaction do
+              return yield @pool
+            end
+
+            # Sometimes we'll make it to here.  That means we threw a
+            # Sequel::Rollback which has been quietly caught.
+            return nil
+          else
+            begin
+              return yield @pool
+            rescue Sequel::Rollback
+              # If we're not in a transaction we can't roll back, but no need to blow up.
+              Log.warn("Sequel::Rollback caught but we're not inside of a transaction")
+              return nil
+            end
           end
 
-          # Sometimes we'll make it to here.  That means we threw a
-          # Sequel::Rollback which has been quietly caught.
-          return nil
-        else
-          begin
-            return yield @pool
-          rescue Sequel::Rollback
-            # If we're not in a transaction we can't roll back, but no need to blow up.
-            Log.warn("Sequel::Rollback caught but we're not inside of a transaction")
-            return nil
+
+        rescue Sequel::DatabaseDisconnectError => e
+          # MySQL might have been restarted.
+          last_err = e
+          Log.info("Connecting to the database failed.  Retrying...")
+          sleep(opts[:db_failed_retry_delay] || 3)
+
+
+        rescue Sequel::NoExistingObject, Sequel::DatabaseError => e
+          if (attempt + 1) < retries && is_retriable_exception(e, opts) && transaction
+            Log.info("Retrying transaction after retriable exception (#{e})")
+            sleep(opts[:retry_delay] || 1)
+          else
+            raise e
           end
         end
 
+        if last_err
+          Log.error("Failed to connect to the database")
+          Log.exception(last_err)
 
-      rescue Sequel::DatabaseDisconnectError => e
-        # MySQL might have been restarted.
-        last_err = e
-        Log.info("Connecting to the database failed.  Retrying...")
-        sleep(opts[:db_failed_retry_delay] || 3)
-
-
-      rescue Sequel::DatabaseError => e
-        if (attempt + 1) < retries && is_retriable_exception(e, opts) && transaction
-          Log.info("Retrying transaction after retriable exception (#{e})")
-          sleep(opts[:retry_delay] || 1)
-        else
-          raise e
+          raise "Failed to connect to the database: #{last_err}"
         end
       end
+    ensure
+      Thread.current[:nesting_level] -= 1
 
-    end
-
-    if last_err
-      Log.error("Failed to connect to the database")
-      Log.exception(last_err)
-
-      raise "Failed to connect to the database: #{last_err}"
+      if Thread.current[:nesting_level] <= 0
+        Thread.current[:db_session_storage] = nil
+      end
     end
   end
 
+  def self.in_transaction?
+    @pool.in_transaction?
+  end
 
   def self.sysinfo
     jdbc_metadata.merge(system_metadata) 
@@ -224,7 +251,7 @@ EOF
     (exception.instance_of?(RetryTransaction) ||
      (opts[:retry_on_optimistic_locking_fail] &&
       exception.instance_of?(Sequel::Plugins::OptimisticLocking::Error)) ||
-     (exception.wrapped_exception.cause or exception.wrapped_exception).getSQLState() =~ /^(40|41)/)
+     (exception.wrapped_exception && ( exception.wrapped_exception.cause or exception.wrapped_exception).getSQLState() =~ /^(40|41)/) )
   end
 
 
@@ -332,9 +359,18 @@ eof
       raise Sequel::Plugins::OptimisticLocking::Error.new("Couldn't create version of: #{obj}")
     end
   end
+  
+  def self.supports_jasper?
+    ![:derby, :h2].include?(@pool.database_type)
+  end
 
 
   def self.supports_mvcc?
+    ![:derby, :h2].include?(@pool.database_type)
+  end
+
+
+  def self.supports_join_updates?
     ![:derby, :h2].include?(@pool.database_type)
   end
 

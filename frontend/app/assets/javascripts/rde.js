@@ -698,7 +698,7 @@ $(function() {
             defaults: {},
           }
 
-          var $firstRow = $("table tbody tr:first")
+          var $firstRow = $("table tbody tr:first", $rde_form);
 
          $("table .fieldset-labels th", $rde_form).each(function() {
             var colId = $(this).attr("id");
@@ -845,7 +845,7 @@ $(function() {
 
         applyColumnOrder();
 
-        var $firstRow = $("tbody tr:first");
+        var $firstRow = $("tbody tr:first", $rde_form);
 
         _.each($("td", $firstRow), function(td) {
           var $td = $( td );
@@ -1044,10 +1044,13 @@ $(function() {
       var persistColumnWidths = function() {
         var widths = {};
         $("table colgroup col", $rde_form).each(function(i, col) {
-          if ($(col).width() === 0) {
-            $(col).width($(col).data("default-width"));
+          if ($(col).prop("width") === null || $(col).prop("width") === "") {
+            $(col).prop("width", $(col).data("default-width"));
+          } else if ($(col).css("width")) {
+            var newWidth = parseInt($(col).css("width"));
+            $(col).prop("width", newWidth);
           }
-          widths[$(col).data("id")] = $(col).width();
+          widths[$(col).data("id")] = parseInt($(col).prop("width"));
         });
 
         COLUMN_WIDTHS = widths;
@@ -1078,13 +1081,20 @@ $(function() {
       var applyPersistentColumnWidths = function() {
         var total_width = 0;
 
-        $("table colgroup col", $rde_form).each(function(i, el) {
+        // force table layout to auto
+        $table.css("tableLayout", "auto");
+
+        $("colgroup col", $table).each(function(i, el) {
           var colW = getColumnWidth($(el).data("id"));
-          $(el).width(colW);
+          $(el).prop("width", colW);
           total_width += colW;
         });
 
         $table.width(total_width);
+
+        // and then change table layout to fixed to force a redraw to
+        // ensure all colgroup widths are obeyed
+        $table.css("tableLayout", "fixed");
       };
 
       var applyPersistentStickyColumns = function() {

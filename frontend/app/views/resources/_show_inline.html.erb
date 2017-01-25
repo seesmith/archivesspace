@@ -100,7 +100,7 @@
           <%= render_aspace_partial :partial => "collection_management/show", :locals => { :collection_management => @resource.collection_management, :context => readonly, :section_id => "resource_collection_management_" } %>
         <% end %>
 
-        <% if @resource.classifications %>
+        <% if @resource.classifications && !@resource.classifications.empty? %>
           <%= render_aspace_partial :partial => "classifications/show", :locals => { :classifications => @resource.classifications, :context => readonly, :section_id => "resource_classifications_" } %>
         <% end %>
 
@@ -108,6 +108,10 @@
 
         <% if @resource.user_defined %>
           <%= render_aspace_partial :partial => "user_defined/show", :locals => { :user_defined => @resource.user_defined, :context => readonly, :section_id => "resource_user_defined_" } %>
+        <% end %>
+
+        <% if @resource.external_ids.length > 0 && show_external_ids? %>
+          <%= render_aspace_partial :partial => "external_ids/show", :locals => { :external_ids => @resource.external_ids, :section_id => "resource_external_ids_" } %>
         <% end %>
 
         <%= show_plugins_for(@resource, readonly) %>

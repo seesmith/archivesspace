@@ -11,6 +11,11 @@ $(function() {
       }
 
       $this.addClass("initialised");
+      
+      // this is a bit hacky, but we need to have some input fields present in
+      // the form so we don't have to rely on the linker to make sure data
+      // presists. we can remove those after the linker does its thing.
+      $(".prelinker", $linkerWrapper).remove();
 
       var config = {
         url: decodeURIComponent($this.data("url")),
@@ -377,11 +382,12 @@ $(function() {
 });
 
 $(document).ready(function() {
-  $(document).bind("loadedrecordform.aspace", function(event, $container) {
-    $(".linker:not(.initialised)", $container).linker();
+  $(document).bind("loadedrecordsubforms.aspace", function(event, $container) {
+    $(".linker-wrapper:visible > .linker:not(.initialised)", $container).linker();
+    // we can go ahead and init dropdowns ( such as those in the toolbars ) 
+    $("#archives_tree_toolbar .linker:not(.initialised)").linker();
   });
 
-  $(".linker:not(.initialised)").linker();
 
   $(document).bind("subrecordcreated.aspace", function(event, object_name, subform) {
     $(".linker:not(.initialised)", subform).linker();

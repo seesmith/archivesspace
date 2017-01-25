@@ -9,8 +9,20 @@ class ResourcesController < ApplicationController
                       "manage_repository" => [:defaults, :update_defaults]
 
 
+  include ExportHelper
+
   def index
-    @search_data = Search.for_type(session[:repo_id], params[:include_components]==="true" ? ["resource", "archival_object"] : "resource", params_for_backend_search.merge({"facet[]" => SearchResultData.RESOURCE_FACETS}))
+    respond_to do |format| 
+      format.html {   
+        @search_data = Search.for_type(session[:repo_id], params[:include_components]==="true" ? ["resource", "archival_object"] : "resource", params_for_backend_search.merge({"facet[]" => SearchResultData.RESOURCE_FACETS}))
+      }
+      format.csv { 
+        search_params = params_for_backend_search.merge({"facet[]" => SearchResultData.RESOURCE_FACETS})
+        search_params["type[]"] = params[:include_components] === "true" ? ["resource", "archival_object"] : [ "resource" ] 
+        uri = "/repositories/#{session[:repo_id]}/search"
+        csv_response( uri, search_params )
+      }  
+    end 
   end
 
   def show
@@ -91,7 +103,13 @@ class ResourcesController < ApplicationController
 
 
   def transfer
-    handle_transfer(Resource)
+    begin
+      handle_transfer(Resource)
+    rescue ArchivesSpace::TransferConflictException => e
+      @transfer_errors = e.errors
+      show
+      render :action => :show
+    end
   end
 
 
@@ -273,7 +291,11 @@ class ResourcesController < ApplicationController
 
     tree = []
 
-    limit_to = params[:node_uri] || "root"
+    limit_to = if  params[:node_uri] && !params[:node_uri].include?("/resources/") 
+                 params[:node_uri]
+               else
+                 "root"
+               end
 
     if !params[:hash].blank?
       node_id = params[:hash].sub("tree::", "").sub("#", "")

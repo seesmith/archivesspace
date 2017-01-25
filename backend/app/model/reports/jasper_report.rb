@@ -31,10 +31,12 @@ class JasperReport
   attr_accessor :jrprint
   attr_accessor :export_file
   attr_accessor :data_source
+  attr_accessor :format
 
-  def initialize(params = {})
+  def initialize(params, job)
     @repo_id = params[:repo_id] if params.has_key?(:repo_id) && params[:repo_id] != ""
-    @base_path = File.expand_path( File.dirname( report ) )
+    @base_path = File.dirname(self.class.report)
+    @format = params[:format] if params.has_key?(:format) && params[:format] != "" 
     ObjectSpace.define_finalizer( self, self.class.finalize(self) )
   end
 
@@ -44,16 +46,11 @@ class JasperReport
  
   # the convention is that all report files ( primary and subreports)  will be located in
   # AS_BASE/reports/ClassNameReport
-  def report_base
-    File.join(  'reports' )
-  end
 
   # the convention is that the compiled primary report will be located in
   # AS_BASE/reports/ClassNameReport/ClassNameReport.jasper
-  def report 
-    StaticAssetFinder.new(report_base).find_all( self.class.name + ".jasper").find do |f|  
-      File.basename(f, '.jasper') == self.class.name 
-    end
+  def report
+    self.class.report
   end
 
   # this method compiles our jrxml files into jasper files
@@ -81,5 +78,16 @@ class JasperReport
       obj.datasource.close!
     } 
   end
+
+  def self.report
+    StaticAssetFinder.new(report_base).find_all( self.name + ".jasper").find do |f|  
+      File.basename(f, '.jasper') == self.name 
+    end
+  end
+  
+  def self.report_base
+    "reports" 
+  end
+
 
 end
