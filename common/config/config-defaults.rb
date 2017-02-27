@@ -10,7 +10,7 @@ AppConfig[:default_page_size] = 10
 AppConfig[:max_page_size] = 250
 
 # Log level for the backend, values: (everything) debug, info, warn, error, fatal (severe only)
-AppConfig[:backend_log_level] = "error"
+AppConfig[:backend_log_level] = "debug"
 
 # A prefix added to cookies used by the application.
 #
@@ -31,7 +31,7 @@ AppConfig[:indexer_solr_timeout_seconds] = 300
 AppConfig[:allow_other_unmapped] = false
 
 AppConfig[:db_url] =  "jdbc:mysql://localhost:3306/archivesspace?user=xx&password=xx"
-AppConfig[:db_url_redacted] = proc { AppConfig[:db_url].gsub(/(user|password)=(.*?)(&|$)/, '\1=[REDACTED]\3') }
+AppConfig[:db_url_redacted] = proc { AppConfig[:db_url].gsub(/(user|password)=(.*?)&/, '\1=[REDACTED]&') }
 AppConfig[:db_max_connections] = proc { 20 + (AppConfig[:indexer_thread_count] * 2) }
 
 # Set to true to log all SQL statements.  Note that this will have a performance
@@ -137,7 +137,7 @@ AppConfig[:report_pdf_font_paths] = proc { ["#{AppConfig[:backend_url]}/reports/
 AppConfig[:report_pdf_font_family] = "\"DejaVu Sans\", sans-serif"
 
 # Plug-ins to load. They will load in the order specified
-AppConfig[:plugins] = ['local',  'lcnaf', 'aspace-public-formats', 'aspace_feedback']
+AppConfig[:plugins] = ['local',  'lcnaf', 'aspace-public-formats', 'aspace_feedback', 'ead_load']
 
 # URL to direct the feedback link
 # You can remove this from the footer by making the value blank.
@@ -196,7 +196,7 @@ AppConfig[:compile_jasper] = true
 # There are some conditions that has caused tree nodes ( ArchivalObjects, DO
 # Components, and ClassificationTerms) to lose their sequence pointers and
 # position setting. This will resequence these tree nodes prior to startup.
-# If is recogmended that this be used very infrequently and should not be set
+# If is recommended that this be used very infrequently and should not be set
 # to true for all startups ( as it will take a considerable amount of time )
 AppConfig[:resequence_on_startup] = false
 
