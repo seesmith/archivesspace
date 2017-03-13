@@ -1,3 +1,4 @@
+require_relative 'converter'
 class EADConverter < Converter
 
   require 'securerandom'
@@ -832,14 +833,12 @@ class EADConverter < Converter
       end
          obj
     end
-
   end
   end
 
 
 
   # Templates Section
-
 
   def make_corp_template(opts)
     return nil if inner_xml.strip.empty?
@@ -931,12 +930,9 @@ class EADConverter < Converter
     @dates  = ''
     @qualifier = ''
 
-    Log.info('IMPORT PERSON ' + @primary_name)
 
     if inner_xml.include? '|'
-      Log.debug('PIPES primary_name ' + @primary_name )
       @all_name = inner_xml.split('|')
-      Log.debug('array length ' + @all_name.length.to_s)
       @primary_name = @all_name[0]
       @rest_of_name = @all_name[1]
       @title = @all_name[2]
@@ -945,7 +941,6 @@ class EADConverter < Converter
         @qualifier = @all_name[4]
       end
     else
-      Log.info('IMPORT PERSON in else')
     end
 
 
